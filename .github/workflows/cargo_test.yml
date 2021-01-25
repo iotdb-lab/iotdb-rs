@@ -1,0 +1,39 @@
+name: cargo-test
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  cargo-test:
+    name: Run test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build: [ stable, nightly, macos, windows ]
+        include:
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+          - build: nightly
+            os: ubuntu-latest
+            rust: nightly
+          - build: macos
+            os: macos-latest
+            rust: stable
+          - build: windows
+            os: windows-latest
+            rust: stable
+    steps:
+      - uses: actions/checkout@master
+      - name: Install Rust
+        run: |
+          rustup set profile minimal
+          rustup update --no-self-update ${{ matrix.rust }}
+          rustup default ${{ matrix.rust }}
+          rustup -V
+          rustc -Vv
+          cargo -V
+      - name: Build and run tests
+        run: cargo test
