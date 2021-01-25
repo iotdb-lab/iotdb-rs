@@ -33,7 +33,7 @@ fn main() -> Result<(), Error> {
 
     let mut res = session.query("SHOW TIMESERIES root")?;
     println!("{:#?}", res);
-    pretty::statement_res(res);
+    pretty::result_set(res);
 
     session.close()?;
 
