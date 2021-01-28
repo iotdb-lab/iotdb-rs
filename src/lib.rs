@@ -1,14 +1,11 @@
-#[macro_use]
-extern crate prettytable;
-
-pub const SERVICE_NAME: &str = "IotDBClient";
-
 pub mod pretty;
 pub mod rpc;
 pub mod session;
 pub mod tablet;
 
 pub mod client {
+    use log::{debug, trace};
+
     type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
     use crate::rpc::TSIServiceSyncClient;
@@ -49,6 +46,8 @@ pub mod client {
         }
 
         pub fn create(&mut self) -> thrift::Result<ClientType> {
+            trace!("Create a IotDB client");
+
             let mut channel = TTcpChannel::new();
             channel.open(format!("{}:{}", self.host, self.port).as_str())?;
             let (i_chan, o_chan) = channel.split()?;
@@ -60,9 +59,11 @@ pub mod client {
             if self.rpc_compaction {
                 i_prot = Box::new(TCompactInputProtocol::new(i_tran));
                 o_prot = Box::new(TCompactOutputProtocol::new(o_tran));
+                debug!("Create a compaction client");
             } else {
                 i_prot = Box::new(TBinaryInputProtocol::new(i_tran, true));
                 o_prot = Box::new(TBinaryOutputProtocol::new(o_tran, true));
+                debug!("Create a binary client");
             }
             Ok(TSIServiceSyncClient::new(i_prot, o_prot))
         }
