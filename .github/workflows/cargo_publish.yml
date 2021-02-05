@@ -1,0 +1,14 @@
+name: cargo-publish
+
+on:
+  release:
+    types: [ created ]
+
+jobs:
+  cargo-publish:
+    name: Cargo Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish to crates-io
+        run: cargo publish --token  ${{secrets.PUBLISH_KEY}} --verbose
