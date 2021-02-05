@@ -29,9 +29,9 @@ iotdb = "0.0.2"
 ```rust
 use thrift::Error;
 
-use iotdb::client::Client;
 use iotdb::pretty;
-use iotdb::session::Session;
+use iotdb::Client;
+use iotdb::Session;
 use std::collections::HashMap;
 
 fn main() -> Result<(), Error> {
