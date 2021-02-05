@@ -21,7 +21,7 @@ Add `iotdb` to your `Cargo.toml`
 
 ```toml
 [dependencies]
-iotdb = "0.0.2"
+iotdb = "0.0.3"
 ```
 
 ## Example
