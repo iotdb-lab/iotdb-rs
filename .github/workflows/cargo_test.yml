@@ -36,4 +36,4 @@ jobs:
           rustc -Vv
           cargo -V
       - name: Build and run tests
-        run: cargo test
+        run: cargo test --lib iotdb
