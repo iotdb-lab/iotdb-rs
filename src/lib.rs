@@ -7,7 +7,14 @@
 //! [![Rust Build](https://img.shields.io/github/workflow/status/francis-du/iotdb-rs/cargo-test?label=build&style=flat-square)](https://github.com/francis-du/iotdb-rs/actions?query=workflow%3Acargo-test)
 //! [![Crates Publish](https://img.shields.io/github/workflow/status/francis-du/iotdb-rs/cargo-publish?label=publish&style=flat-square)](https://github.com/francis-du/iotdb-rs/actions?query=workflow%3Acargo-publish)
 //!
-//! A Rust client for Apache IotDB (WIP)
+//! (WIP) A Rust client for Apache IotDB
+//!
+//! # Overview
+//!
+//! IoTDB (Internet of Things Database) is a data management system for time series data, which can provide users specific services,
+//! such as, data collection, storage and analysis. Due to its light weight structure, high performance and usable features together
+//! with its seamless integration with the Hadoop and Spark ecology, IoTDB meets the requirements of massive dataset storage,
+//! high throughput data input, and complex data analysis in the industrial IoT field.
 //!
 //! # How to use
 //!
@@ -26,36 +33,22 @@
 //! use iotdb::pretty;
 //! use iotdb::Client;
 //! use iotdb::Session;
-//! use std::collections::HashMap;
 //!
 //! fn main() -> Result<(), Error> {
-//!     // create client 4 ways
-//!     // let client = Client::new("localhost", "6667").create();
-//!     // let client = Client::new("localhost", "6667").enable_rpc_compaction().create();
-//!     // let client = Client::default().enable_rpc_compaction().create()?;
-//!     let client = Client::default().create()?;
+//!     // let client = Client::new("localhost", "6667").enable_rpc_compaction().create()?;
+//!     let client = Client::new("localhost", "6667").create()?;
 //!
-//!     // open a session
+//!     // open session
 //!     let mut session = Session::new(client);
 //!
-//!     // config session
-//!     let mut config_map = HashMap::new();
-//!     config_map.insert("", "");
-//!
-//!     // session
-//!     //     .user("root")
-//!     //     .password("root")
-//!     //     .fetch_size(2048)
-//!     //     .zone_id("UTC+8")
-//!     //     .config("", "")
-//!     //     .config_map(config_map)
-//!     //     .open()?;
-//!
-//!     // using default config
-//!     session.open()?;
+//!     session
+//!         .user("root")
+//!         .password("root")
+//!         .zone_id("UTC+8")
+//!         .open()?;
 //!
 //!     let res = session.query("SHOW TIMESERIES root")?;
-//!     println!("{:#?}", res);
+//!     // println!("{:#?}", res);
 //!     pretty::result_set(res);
 //!
 //!     session.close()?;

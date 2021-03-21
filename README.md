@@ -3,7 +3,7 @@
 ![Logo](http://iotdb.apache.org/img/logo.png)
 
 <h1>iotdb-rs</h1>
-<h3>Rust client for Apache IotDB (WIP)</h3>
+<h3>(WIP) Rust client for Apache IotDB</h3>
 
 [![Crates.io](https://img.shields.io/crates/v/iotdb?style=flat-square&color=%23E5531A)](https://crates.io/crates/iotdb)
 [![Api Docs](https://img.shields.io/badge/Api-Doc-a94064?style=flat-square&color=%23E5531A)](https://docs.rs/iotdb)
@@ -15,7 +15,15 @@
 
 ---
 
-## How to use 
+## Overview
+
+IoTDB (Internet of Things Database) is a data management system for time series data, which can provide 
+users specific services, such as, data collection, storage and analysis. Due to its light weight structure, 
+high performance and usable features together with its seamless integration with the Hadoop and Spark ecology, 
+IoTDB meets the requirements of massive dataset storage, high throughput data input, and complex data analysis
+in the industrial IoT field.
+
+## How to use
 
 Add `iotdb` to your `Cargo.toml`
 
@@ -32,36 +40,22 @@ use thrift::Error;
 use iotdb::pretty;
 use iotdb::Client;
 use iotdb::Session;
-use std::collections::HashMap;
 
 fn main() -> Result<(), Error> {
-    // create client 4 ways
-    // let client = Client::new("localhost", "6667").create();
-    // let client = Client::new("localhost", "6667").enable_rpc_compaction().create();
-    // let client = Client::default().enable_rpc_compaction().create()?;
-    let client = Client::default().create()?;
+    // let client = Client::new("localhost", "6667").enable_rpc_compaction().create()?;
+    let client = Client::new("localhost", "6667").create()?;
 
-    // open a session
+    // open session
     let mut session = Session::new(client);
 
-    // config session
-    let mut config_map = HashMap::new();
-    config_map.insert("", "");
-
-    // session
-    //     .user("root")
-    //     .password("root")
-    //     .fetch_size(2048)
-    //     .zone_id("UTC+8")
-    //     .config("", "")
-    //     .config_map(config_map)
-    //     .open()?;
-
-    // using default config
-    session.open()?;
+    session
+        .user("root")
+        .password("root")
+        .zone_id("UTC+8")
+        .open()?;
 
     let res = session.query("SHOW TIMESERIES root")?;
-    println!("{:#?}", res);
+    // println!("{:#?}", res);
     pretty::result_set(res);
 
     session.close()?;
