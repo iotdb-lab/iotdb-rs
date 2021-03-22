@@ -58,7 +58,7 @@
 //!
 //! ```
 
-pub mod db;
+pub mod iotdb;
 pub mod pretty;
 pub mod rpc;
 
@@ -67,7 +67,7 @@ use crate::rpc::{
     TSCreateTimeseriesReq, TSDeleteDataReq, TSExecuteStatementReq, TSExecuteStatementResp,
     TSIServiceSyncClient, TSInsertRecordReq, TSInsertRecordsOfOneDeviceReq, TSInsertRecordsReq,
     TSInsertStringRecordsReq, TSInsertTabletReq, TSInsertTabletsReq, TSOpenSessionReq,
-    TSProtocolVersion, TSSetTimeZoneReq, TSStatus, TTSIServiceSyncClient,
+    TSProtocolVersion, TSQueryDataSet, TSSetTimeZoneReq, TSStatus, TTSIServiceSyncClient,
 };
 use chrono::{Local, Utc};
 use log::{debug, error, trace};
@@ -77,7 +77,7 @@ use thrift::protocol::{
     TInputProtocol, TOutputProtocol,
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
-use thrift::{ApplicationErrorKind, ProtocolErrorKind, TransportErrorKind};
+use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind, TransportErrorKind};
 
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
@@ -206,15 +206,6 @@ impl Session {
                 .insert(key.to_string(), map.get(key).unwrap().to_string());
         }
         self
-    }
-
-    // Verify success status of operation
-    pub fn is_success(&self, status: &TSStatus) -> bool {
-        if status.code == SUCCESS_CODE {
-            true
-        } else {
-            false
-        }
     }
 
     // Open Session
@@ -473,10 +464,32 @@ impl Session {
     }
 
     /// Check whether a specific time-series exists
-    // TODO
-    pub fn check_time_series_exist(&mut self, path: &str) {
-        trace!("Check time-series exists");
-        self.query(format!("SHOW TIMESERIES {}", path).as_str());
+    pub fn check_time_series_exists(&mut self, path: &str) -> bool {
+        trace!("Check time series exists");
+
+        let statement = format!("SHOW TIMESERIES {}", path);
+        let req = TSExecuteStatementReq::new(
+            self.session_id,
+            statement,
+            self.statement_id,
+            self.fetch_size,
+        );
+
+        match self.client.execute_query_statement(req) {
+            Ok(resp) => match resp.query_data_set {
+                None => false,
+                Some(data_set) => {
+                    self.cancel_operation(resp.query_id.unwrap());
+
+                    if data_set.value_list.is_empty() {
+                        false
+                    } else {
+                        true
+                    }
+                }
+            },
+            Err(_) => unimplemented!(),
+        }
     }
 
     /// Delete all data <= time in multiple time-series
@@ -502,8 +515,8 @@ impl Session {
         }
     }
 
-    /// Insert string records
-    // TODO
+    /// special case for inserting one row of String (TEXT) value
+    /// TODO
     pub fn insert_string_records(
         &mut self,
         device_ids: Vec<String>,
@@ -554,27 +567,31 @@ impl Session {
         self.client.insert_records(req)
     }
 
-    /// Insert records of one device
-    // TODO
-    pub fn insert_records_of_one_device(
-        &mut self,
-        device_id: String,
-        measurements_list: Vec<Vec<String>>,
-        values_list: Vec<Vec<u8>>,
-        timestamps: Vec<i64>,
-    ) -> thrift::Result<TSStatus> {
-        let req = TSInsertRecordsOfOneDeviceReq::new(
-            self.session_id,
-            device_id,
-            measurements_list,
-            values_list,
-            timestamps,
-        );
-        Ok(self.client.insert_records_of_one_device(req)?)
-    }
+    /// this method NOT insert data into database and the server just return after accept the
+    /// request, this method should be used to test other time cost in client
+    /// TODO
+    pub fn test_insert_record() {}
 
-    /// Insert tablet
-    // TODO
+    /// this method NOT insert data into database and the server just return after accept the
+    /// request, this method should be used to test other time cost in client
+    /// TODO
+    pub fn test_insert_records() {}
+
+    /// TODO
+    pub fn gen_insert_record_req() {}
+
+    /// TODO
+    pub fn gen_insert_records_req() {}
+
+    /// insert one tablet, in a tablet, for each timestamp, the number of measurements is same
+    ///     for example three records in the same device can form a tablet:
+    ///         timestamps,     m1,    m2,     m3
+    ///                  1,  125.3,  True,  text1
+    ///                  2,  111.6, False,  text2
+    ///                  3,  688.6,  True,  text3
+    /// Notice: The tablet should not have empty cell
+    ///         The tablet itself is sorted
+    /// TODO
     pub fn insert_tablet(
         &mut self,
         device_id: String,
@@ -597,8 +614,8 @@ impl Session {
         self.client.insert_tablet(req)
     }
 
-    /// Insert tablets
-    // TODO
+    /// insert multiple tablets, tablets are independent to each other
+    /// TODO
     pub fn insert_tablets(
         &mut self,
         device_ids: Vec<String>,
@@ -620,30 +637,41 @@ impl Session {
         self.client.insert_tablets(req)
     }
 
-    /// Set time zone
-    pub fn set_time_zone(&mut self, time_zone: &str) -> thrift::Result<()> {
-        trace!("Set time zone");
-        let req = TSSetTimeZoneReq::new(self.session_id, time_zone.to_string());
-        match self.client.set_time_zone(req) {
-            Ok(status) => {
-                if status.code == 200 {
-                    Ok(())
-                } else {
-                    error!("{}", status.message.clone().unwrap());
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
-                    ))
-                }
-            }
-            Err(error) => Err(thrift::new_transport_error(
-                TransportErrorKind::Unknown,
-                error.to_string(),
-            )),
-        }
-    }
+    /// TODO
+    pub fn insert_records_of_one_device() {}
 
-    // Exec Query
+    /// TODO
+    pub fn insert_records_of_one_device_sorte() {}
+
+    /// TODO
+    pub fn gen_insert_records_of_one_device_request() {}
+
+    /// this method NOT insert data into database and the server just return after accept the
+    /// request, this method should be used to test other time cost in client
+    /// TODO
+    pub fn test_insert_table() {}
+
+    /// this method NOT insert data into database and the server just return after accept the
+    /// request, this method should be used to test other time cost in client
+    /// TODO
+    pub fn test_insert_tablets() {}
+
+    /// TODO
+    pub fn gen_insert_tablet_req() {}
+
+    /// TODO
+    pub fn gen_insert_tablets_req() {}
+
+    /// execute query sql statement and returns SessionDataSet
+    /// TODO
+    pub fn execute_query_statement() {}
+
+    /// execute non-query sql statement
+    /// TODO
+    pub fn execute_non_query_statement() {}
+
+    /// Exec Query
+    /// TODO: need to delete
     pub fn query(&mut self, sql: &str) -> thrift::Result<TSExecuteStatementResp> {
         debug!("Exec query \"{}\"", &sql);
         let req = TSExecuteStatementReq::new(
@@ -671,6 +699,32 @@ impl Session {
         }
     }
 
+    /// TODO
+    fn value_to_bytes() {}
+
+    /// Set time zone
+    pub fn set_time_zone(&mut self, time_zone: &str) -> thrift::Result<()> {
+        trace!("Set time zone");
+        let req = TSSetTimeZoneReq::new(self.session_id, time_zone.to_string());
+        match self.client.set_time_zone(req) {
+            Ok(status) => {
+                if status.code == 200 {
+                    Ok(())
+                } else {
+                    error!("{}", status.message.clone().unwrap());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
+    }
+
     /// Get time zone
     pub fn get_time_zone(&mut self) -> thrift::Result<String> {
         trace!("Get time zone");
@@ -687,16 +741,38 @@ impl Session {
         }
     }
 
-    /// Get properties
-    pub fn get_properties(&mut self) -> thrift::Result<ServerProperties> {
-        trace!("Get properties");
-        Ok(self.client.get_properties()?)
+    /// Verify success status of operation
+    fn is_success(&self, status: &TSStatus) -> bool {
+        if status.code == SUCCESS_CODE {
+            true
+        } else {
+            false
+        }
     }
 
+    /// TODO
+    fn check_sorted(timestamps: Vec<i64>) {}
+
     /// Cancel operation
-    //TODO
-    pub fn cancel_operation(&mut self, query_id: i64) -> thrift::Result<TSStatus> {
+    pub fn cancel_operation(&mut self, query_id: i64) -> thrift::Result<()> {
         let req = TSCancelOperationReq::new(self.session_id, query_id);
-        self.client.cancel_operation(req)
+        match self.client.cancel_operation(req) {
+            Ok(status) => {
+                if self.is_success(&status) {
+                    Ok(())
+                } else {
+                    let msg = format!("Cancel operation failed,'{:?}'", query_id);
+                    error!("{}", msg.clone());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        msg,
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
     }
 }

@@ -11,7 +11,7 @@ pub fn result_set(resp: TSExecuteStatementResp) {
     }
     table.add_row(Row::new(cells));
 
-    //TODO Add values rows
+    // TODO: Add values rows
 
     // Print the table to stdout
     table.printstd();

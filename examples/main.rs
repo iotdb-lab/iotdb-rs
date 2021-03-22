@@ -18,8 +18,12 @@ fn main() -> Result<(), Error> {
         .open()?;
 
     let res = session.query("SHOW TIMESERIES root")?;
-    // println!("{:#?}", res);
+    println!("{:#?}", res);
     pretty::result_set(res);
+
+    // ------------------------------- TODO: Will be delete ----------------------------------------
+    // println!("{:?}", session.check_time_series_exists("root"));
+    // ---------------------------------------------------------------------------------------------
 
     session.close()?;
 
