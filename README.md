@@ -17,10 +17,7 @@
 
 ## Overview
 
-IoTDB (Internet of Things Database) is a data management system for time series data, which can provide users specific
-services, such as, data collection, storage and analysis. Due to its light weight structure, high performance and usable
-features together with its seamless integration with the Hadoop and Spark ecology, IoTDB meets the requirements of
-massive dataset storage, high throughput data input, and complex data analysis in the industrial IoT field.
+IoTDB (Internet of Things Database) is a data management system for time series data, which can provide users specific services, such as, data collection, storage and analysis. Due to its light weight structure, high performance and usable features together with its seamless integration with the Hadoop and Spark ecology, IoTDB meets the requirements of massive dataset storage, high throughput data input, and complex data analysis in the industrial IoT field.
 
 ## How to use
 
@@ -75,7 +72,7 @@ curl -O https://archive.apache.org/dist/iotdb/0.11.2/apache-iotdb-0.11.2-bin.zip
 2. Install and start iotdb server
 
 ```shell
-$IOTDB_HOME/sbin/start-server -c conf -rpc_port 6667
+cd $IOTDB_HOME && sbin/start-server -c conf -rpc_port 6667
 ```
 
 3. Install rust toolchain form [here](https://www.rust-lang.org/tools/install)
