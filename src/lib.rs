@@ -58,17 +58,19 @@
 //!
 //! ```
 
-pub mod iotdb;
+pub mod errors;
 pub mod pretty;
 pub mod rpc;
+pub mod utils;
 
 use crate::rpc::{
-    ServerProperties, TSCancelOperationReq, TSCloseSessionReq, TSCreateMultiTimeseriesReq,
-    TSCreateTimeseriesReq, TSDeleteDataReq, TSExecuteStatementReq, TSExecuteStatementResp,
-    TSIServiceSyncClient, TSInsertRecordReq, TSInsertRecordsOfOneDeviceReq, TSInsertRecordsReq,
-    TSInsertStringRecordsReq, TSInsertTabletReq, TSInsertTabletsReq, TSOpenSessionReq,
-    TSProtocolVersion, TSQueryDataSet, TSSetTimeZoneReq, TSStatus, TTSIServiceSyncClient,
+    TSCancelOperationReq, TSCloseSessionReq, TSCreateMultiTimeseriesReq, TSCreateTimeseriesReq,
+    TSDeleteDataReq, TSExecuteStatementReq, TSExecuteStatementResp, TSIServiceSyncClient,
+    TSInsertRecordReq, TSInsertRecordsReq, TSInsertStringRecordsReq, TSInsertTabletReq,
+    TSInsertTabletsReq, TSOpenSessionReq, TSProtocolVersion, TSSetTimeZoneReq, TSStatus,
+    TTSIServiceSyncClient,
 };
+use crate::utils::{Compressor, TSDataType, TSEncoding};
 use chrono::{Local, Utc};
 use log::{debug, error, trace};
 use std::collections::{BTreeMap, HashMap};
@@ -77,7 +79,7 @@ use thrift::protocol::{
     TInputProtocol, TOutputProtocol,
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
-use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind, TransportErrorKind};
+use thrift::{ApplicationErrorKind, ProtocolErrorKind, TransportErrorKind};
 
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
@@ -297,6 +299,11 @@ impl Session {
         {
             Ok(status) => {
                 if self.is_success(&status) {
+                    debug!(
+                        "setting storage group {:?} message: {:?}",
+                        storage_group,
+                        status.message.unwrap()
+                    );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
@@ -316,26 +323,7 @@ impl Session {
     /// Delete a storage group.
     pub fn delete_storage_group(&mut self, storage_group: &str) -> thrift::Result<()> {
         trace!("Delete a storage group");
-        match self
-            .client
-            .delete_storage_groups(self.session_id, vec![storage_group.to_string()])
-        {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    Ok(())
-                } else {
-                    error!("{}", status.message.clone().unwrap());
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
-                    ))
-                }
-            }
-            Err(error) => Err(thrift::new_transport_error(
-                TransportErrorKind::Unknown,
-                error.to_string(),
-            )),
-        }
+        self.delete_storage_groups(vec![storage_group.to_string()])
     }
 
     /// Delete storage groups.
@@ -343,10 +331,15 @@ impl Session {
         trace!("Delete storage groups");
         match self
             .client
-            .delete_storage_groups(self.session_id, storage_groups)
+            .delete_storage_groups(self.session_id, storage_groups.clone())
         {
             Ok(status) => {
                 if self.is_success(&status) {
+                    debug!(
+                        "delete storage group(s) {:?} message: {:?}",
+                        storage_groups.clone(),
+                        status.message.unwrap()
+                    );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
@@ -366,18 +359,18 @@ impl Session {
     /// Create single time-series
     pub fn create_time_series(
         &mut self,
-        ts_path: String,
-        data_type: i32,
-        encoding: i32,
-        compressor: i32,
+        ts_path: &str,
+        data_type: TSDataType,
+        encoding: TSEncoding,
+        compressor: Compressor,
     ) -> thrift::Result<()> {
-        trace!("Create single time-series");
+        trace!("Create single time series");
         let req = TSCreateTimeseriesReq::new(
             self.session_id,
-            ts_path,
-            data_type,
-            encoding,
-            compressor,
+            ts_path.to_string(),
+            data_type.into(),
+            encoding.into(),
+            compressor.into(),
             None,
             None,
             None,
@@ -386,6 +379,11 @@ impl Session {
         match self.client.create_timeseries(req) {
             Ok(status) => {
                 if self.is_success(&status) {
+                    debug!(
+                        "creating time series {:?} message: {:?}",
+                        ts_path,
+                        status.message.unwrap()
+                    );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
@@ -413,7 +411,7 @@ impl Session {
         trace!("Create multiple time-series");
         let req = TSCreateMultiTimeseriesReq::new(
             self.session_id,
-            ts_path_vec,
+            ts_path_vec.clone(),
             data_type_vec,
             encoding_vec,
             compressor_vec,
@@ -425,6 +423,11 @@ impl Session {
         match self.client.create_multi_timeseries(req) {
             Ok(status) => {
                 if self.is_success(&status) {
+                    debug!(
+                        "creating multiple time series {:?} message: {:?}",
+                        ts_path_vec.clone(),
+                        status.message.unwrap()
+                    );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
@@ -444,9 +447,17 @@ impl Session {
     /// Delete multiple time series
     pub fn delete_time_series(&mut self, path_vec: Vec<String>) -> thrift::Result<()> {
         trace!("Delete multiple time-series");
-        match self.client.delete_timeseries(self.session_id, path_vec) {
+        match self
+            .client
+            .delete_timeseries(self.session_id, path_vec.clone())
+        {
             Ok(status) => {
                 if self.is_success(&status) {
+                    debug!(
+                        "deleting multiple time series {:?} message: {:?}",
+                        path_vec.clone(),
+                        status.message.unwrap()
+                    );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
@@ -479,8 +490,6 @@ impl Session {
             Ok(resp) => match resp.query_data_set {
                 None => false,
                 Some(data_set) => {
-                    self.cancel_operation(resp.query_id.unwrap());
-
                     if data_set.value_list.is_empty() {
                         false
                     } else {
@@ -495,10 +504,15 @@ impl Session {
     /// Delete all data <= time in multiple time-series
     pub fn delete_data(&mut self, path_vec: Vec<String>, timestamp: i64) -> thrift::Result<()> {
         trace!("Delete data");
-        let req = TSDeleteDataReq::new(self.session_id, path_vec, 0, timestamp);
+        let req = TSDeleteDataReq::new(self.session_id, path_vec.clone(), 0, timestamp);
         match self.client.delete_data(req) {
             Ok(status) => {
                 if self.is_success(&status) {
+                    debug!(
+                        "delete data from {:?}, message: {:?}",
+                        path_vec.clone(),
+                        status.message.unwrap()
+                    );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
@@ -516,47 +530,171 @@ impl Session {
     }
 
     /// special case for inserting one row of String (TEXT) value
-    /// TODO
     pub fn insert_string_records(
         &mut self,
         device_ids: Vec<String>,
+        timestamps: Vec<i64>,
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<String>>,
-        timestamps: Vec<i64>,
-    ) -> thrift::Result<TSStatus> {
+    ) -> thrift::Result<()> {
         let req = TSInsertStringRecordsReq::new(
             self.session_id,
-            device_ids,
+            device_ids.clone(),
             measurements_list,
             values_list,
             timestamps,
         );
-        self.client.insert_string_records(req)
+        match self.client.insert_string_records(req) {
+            Ok(status) => {
+                if self.is_success(&status) {
+                    debug!(
+                        "insert string records to device {:?} message: {:?}",
+                        device_ids.clone(),
+                        status.message.unwrap()
+                    );
+                    Ok(())
+                } else {
+                    error!("{}", status.message.clone().unwrap());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
     }
 
     /// Insert record
-    // TODO
     pub fn insert_record(
         &mut self,
         device_id: String,
+        timestamp: i64,
         measurements: Vec<String>,
         values: Vec<u8>,
+    ) -> thrift::Result<()> {
+        let req = TSInsertRecordReq::new(
+            self.session_id,
+            device_id.clone(),
+            measurements,
+            values,
+            timestamp,
+        );
+        match self.client.insert_record(req) {
+            Ok(status) => {
+                if self.is_success(&status) {
+                    debug!(
+                        "insert one record to device {:?} message: {:?}",
+                        device_id.clone(),
+                        status.message.unwrap()
+                    );
+                    Ok(())
+                } else {
+                    error!("{}", status.message.clone().unwrap());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
+    }
+
+    /// this method NOT insert data into database and the server just return after accept the
+    /// request, this method should be used to test other time cost in client
+    pub fn test_insert_record(
+        &mut self,
+        device_id: String,
         timestamp: i64,
-    ) -> thrift::Result<TSStatus> {
-        let req =
-            TSInsertRecordReq::new(self.session_id, device_id, measurements, values, timestamp);
-        self.client.insert_record(req)
+        measurements: Vec<String>,
+        values: Vec<u8>,
+    ) -> thrift::Result<()> {
+        let req = TSInsertRecordReq::new(
+            self.session_id,
+            device_id.clone(),
+            measurements,
+            values,
+            timestamp,
+        );
+        match self.client.test_insert_record(req) {
+            Ok(status) => {
+                if self.is_success(&status) {
+                    debug!(
+                        "testing! insert one record to device {:?} message: {:?}",
+                        device_id.clone(),
+                        status.message.unwrap()
+                    );
+                    Ok(())
+                } else {
+                    error!("{}", status.message.clone().unwrap());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
     }
 
     /// Insert records
-    // TODO
     pub fn insert_records(
         &mut self,
         device_ids: Vec<String>,
+        timestamps: Vec<i64>,
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<u8>>,
+    ) -> thrift::Result<()> {
+        let req = TSInsertRecordsReq::new(
+            self.session_id,
+            device_ids.clone(),
+            measurements_list,
+            values_list,
+            timestamps,
+        );
+        match self.client.insert_records(req) {
+            Ok(status) => {
+                if self.is_success(&status) {
+                    debug!(
+                        "insert multiple records to devices {:?} message: {:?}",
+                        device_ids.clone(),
+                        status.message.unwrap()
+                    );
+                    Ok(())
+                } else {
+                    error!("{}", status.message.clone().unwrap());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
+    }
+
+    /// this method NOT insert data into database and the server just return after accept the
+    /// request, this method should be used to test other time cost in client
+    pub fn test_insert_records(
+        &mut self,
+        device_ids: Vec<String>,
         timestamps: Vec<i64>,
-    ) -> thrift::Result<TSStatus> {
+        measurements_list: Vec<Vec<String>>,
+        values_list: Vec<Vec<u8>>,
+    ) -> thrift::Result<()> {
         let req = TSInsertRecordsReq::new(
             self.session_id,
             device_ids,
@@ -564,24 +702,28 @@ impl Session {
             values_list,
             timestamps,
         );
-        self.client.insert_records(req)
+        match self.client.test_insert_records(req) {
+            Ok(status) => {
+                if self.is_success(&status) {
+                    debug!(
+                        "testing! insert multiple records, message: {:?}",
+                        status.message.unwrap()
+                    );
+                    Ok(())
+                } else {
+                    error!("{}", status.message.clone().unwrap());
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(thrift::new_transport_error(
+                TransportErrorKind::Unknown,
+                error.to_string(),
+            )),
+        }
     }
-
-    /// this method NOT insert data into database and the server just return after accept the
-    /// request, this method should be used to test other time cost in client
-    /// TODO
-    pub fn test_insert_record() {}
-
-    /// this method NOT insert data into database and the server just return after accept the
-    /// request, this method should be used to test other time cost in client
-    /// TODO
-    pub fn test_insert_records() {}
-
-    /// TODO
-    pub fn gen_insert_record_req() {}
-
-    /// TODO
-    pub fn gen_insert_records_req() {}
 
     /// insert one tablet, in a tablet, for each timestamp, the number of measurements is same
     ///     for example three records in the same device can form a tablet:

@@ -1,6 +1,8 @@
 use thrift::Error;
 
 use iotdb::pretty;
+use iotdb::utils::TSEncoding;
+use iotdb::utils::{Compressor, Field, TSDataType};
 use iotdb::Client;
 use iotdb::Session;
 
@@ -17,13 +19,34 @@ fn main() -> Result<(), Error> {
         .zone_id("UTC+8")
         .open()?;
 
-    let res = session.query("SHOW TIMESERIES root")?;
-    println!("{:#?}", res);
-    pretty::result_set(res);
+    session.set_storage_group("root.ln")?;
+    session.create_time_series(
+        "root.ln.wf01.wt01.status",
+        TSDataType::BOOLEAN,
+        TSEncoding::default(),
+        Compressor::default(),
+    )?;
 
-    // ------------------------------- TODO: Will be delete ----------------------------------------
-    // println!("{:?}", session.check_time_series_exists("root"));
-    // ---------------------------------------------------------------------------------------------
+    session.create_time_series(
+        "root.ln.wf01.wt01.temperature",
+        TSDataType::FLOAT,
+        TSEncoding::RLE,
+        Compressor::default(),
+    )?;
+
+    let res1 = session.query("SHOW STORAGE GROUP")?;
+    println!("{:#?}", res1);
+    pretty::result_set(res1);
+
+    let res2 = session.query("SHOW TIMESERIES")?;
+    println!("{:#?}", res2);
+    pretty::result_set(res2);
+
+    let res3 = session.query("SHOW TIMESERIES root.ln.wf01.wt01.status")?;
+    println!("{:#?}", res3);
+    pretty::result_set(res3);
+
+    println!("{:?}", session.check_time_series_exists("root"));
 
     session.close()?;
 
