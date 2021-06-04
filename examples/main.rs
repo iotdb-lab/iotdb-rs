@@ -1,7 +1,7 @@
 use thrift::Error;
 
-use iotdb::utils::{TSEncoding, Pretty};
 use iotdb::utils::{Compressor, Field, TSDataType};
+use iotdb::utils::{Pretty, TSEncoding};
 use iotdb::Client;
 use iotdb::Session;
 

@@ -1,6 +1,6 @@
-use getset::{CopyGetters, Getters, MutGetters, Setters};
-use prettytable::{Table, Cell, Row};
 use crate::rpc::TSExecuteStatementResp;
+use getset::{CopyGetters, Getters, MutGetters, Setters};
+use prettytable::{Cell, Row, Table};
 
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum TSDataType {
