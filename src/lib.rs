@@ -59,7 +59,6 @@
 //! ```
 
 pub mod errors;
-pub mod pretty;
 pub mod rpc;
 pub mod utils;
 

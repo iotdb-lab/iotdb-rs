@@ -1,4 +1,6 @@
 use getset::{CopyGetters, Getters, MutGetters, Setters};
+use prettytable::{Table, Cell, Row};
+use crate::rpc::TSExecuteStatementResp;
 
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum TSDataType {
@@ -198,9 +200,12 @@ impl Field {
     }
 }
 
-#[derive(Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
+#[derive(Clone, Debug, Getters, Setters, MutGetters)]
 pub struct RowRecord {
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     timestamp: i64,
+
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     fields: Vec<Field>,
 }
 
@@ -229,3 +234,30 @@ impl SessionDataSet {
 pub struct Tablet {}
 
 impl Tablet {}
+
+//TODO need to rewrite
+pub struct Pretty {
+    resp: TSExecuteStatementResp,
+}
+
+impl Pretty {
+    pub fn new(resp: TSExecuteStatementResp) -> Pretty {
+        Self { resp }
+    }
+
+    pub fn show(&self) {
+        let mut table = Table::new();
+
+        // Add Columns
+        let mut cells: Vec<Cell> = vec![];
+        for cell in self.resp.clone().columns.unwrap() {
+            cells.push(Cell::new(cell.as_str()))
+        }
+        table.add_row(Row::new(cells));
+
+        // TODO: Add values rows
+
+        // Print the table to stdout
+        table.printstd();
+    }
+}

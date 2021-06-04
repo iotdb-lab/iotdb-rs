@@ -1,7 +1,6 @@
 use thrift::Error;
 
-use iotdb::pretty;
-use iotdb::utils::TSEncoding;
+use iotdb::utils::{TSEncoding, Pretty};
 use iotdb::utils::{Compressor, Field, TSDataType};
 use iotdb::Client;
 use iotdb::Session;
@@ -19,7 +18,10 @@ fn main() -> Result<(), Error> {
         .zone_id("UTC+8")
         .open()?;
 
-    session.set_storage_group("root.ln")?;
+    let storage_group = "root.ln";
+    session.delete_storage_group(storage_group)?;
+    session.set_storage_group(storage_group)?;
+
     session.create_time_series(
         "root.ln.wf01.wt01.status",
         TSDataType::BOOLEAN,
@@ -36,15 +38,15 @@ fn main() -> Result<(), Error> {
 
     let res1 = session.query("SHOW STORAGE GROUP")?;
     println!("{:#?}", res1);
-    pretty::result_set(res1);
+    Pretty::new(res1).show();
 
     let res2 = session.query("SHOW TIMESERIES")?;
     println!("{:#?}", res2);
-    pretty::result_set(res2);
+    Pretty::new(res2).show();
 
     let res3 = session.query("SHOW TIMESERIES root.ln.wf01.wt01.status")?;
     println!("{:#?}", res3);
-    pretty::result_set(res3);
+    Pretty::new(res3).show();
 
     println!("{:?}", session.check_time_series_exists("root"));
 
