@@ -1,7 +1,3 @@
-use crate::rpc::TSExecuteStatementResp;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
-use prettytable::{Cell, Row, Table};
-
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum TSDataType {
     BOOLEAN = 0,
@@ -146,27 +142,14 @@ impl Into<i32> for Compressor {
     }
 }
 
-#[derive(Copy, Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
+#[derive(Copy, Clone, Debug)]
 pub struct Field {
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     data_type: TSDataType,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     bool_value: Option<bool>,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     int_value: Option<i32>,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     long_value: Option<i64>,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     float_value: Option<f32>,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     double_value: Option<f64>,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     binary_value: Option<u8>,
 }
 
@@ -184,10 +167,6 @@ impl Default for Field {
     }
 }
 
-///  Example:
-///     let mut field = Field::new(TSDataType::BOOLEAN);
-///     field.set_int_value(Some(10));
-///     field.int_value();
 impl Field {
     pub fn new(data_type: TSDataType) -> Self {
         let mut field = Field::default();
@@ -200,12 +179,9 @@ impl Field {
     }
 }
 
-#[derive(Clone, Debug, Getters, Setters, MutGetters)]
+#[derive(Clone, Debug)]
 pub struct RowRecord {
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     timestamp: i64,
-
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     fields: Vec<Field>,
 }
 
@@ -219,45 +195,6 @@ impl RowRecord {
     }
 }
 
-pub struct RpcDataSet {}
-
-impl RpcDataSet {
-    // TODO
-}
-
-pub struct SessionDataSet {}
-
-impl SessionDataSet {
-    // TODO
-}
-
 pub struct Tablet {}
 
 impl Tablet {}
-
-//TODO need to rewrite
-pub struct Pretty {
-    resp: TSExecuteStatementResp,
-}
-
-impl Pretty {
-    pub fn new(resp: TSExecuteStatementResp) -> Pretty {
-        Self { resp }
-    }
-
-    pub fn show(&self) {
-        let mut table = Table::new();
-
-        // Add Columns
-        let mut cells: Vec<Cell> = vec![];
-        for cell in self.resp.clone().columns.unwrap() {
-            cells.push(Cell::new(cell.as_str()))
-        }
-        table.add_row(Row::new(cells));
-
-        // TODO: Add values rows
-
-        // Print the table to stdout
-        table.printstd();
-    }
-}

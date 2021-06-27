@@ -1,13 +1,13 @@
 use thrift::Error;
 
-use iotdb::utils::{Compressor, Field, TSDataType};
-use iotdb::utils::{Pretty, TSEncoding};
+use iotdb::util::{Compressor, TSDataType, TSEncoding};
 use iotdb::Client;
 use iotdb::Session;
 
 fn main() -> Result<(), Error> {
-    // let client = Client::new("localhost", "6667").enable_rpc_compaction().create()?;
-    let client = Client::new("localhost", "6667").create()?;
+    let client = Client::new("localhost", "6667")
+        // .enable_rpc_compaction()
+        .create()?;
 
     // open session
     let mut session = Session::new(client);
@@ -23,32 +23,33 @@ fn main() -> Result<(), Error> {
     session.set_storage_group(storage_group)?;
 
     session.create_time_series(
-        "root.ln.wf01.wt01.status",
-        TSDataType::BOOLEAN,
-        TSEncoding::default(),
-        Compressor::default(),
-    )?;
-
-    session.create_time_series(
         "root.ln.wf01.wt01.temperature",
         TSDataType::FLOAT,
         TSEncoding::RLE,
         Compressor::default(),
     )?;
 
-    let res1 = session.query("SHOW STORAGE GROUP")?;
-    println!("{:#?}", res1);
-    Pretty::new(res1).show();
+    session.create_time_series(
+        "root.ln.wf01.wt01.humidity",
+        TSDataType::FLOAT,
+        TSEncoding::RLE,
+        Compressor::default(),
+    )?;
 
-    let res2 = session.query("SHOW TIMESERIES")?;
-    println!("{:#?}", res2);
-    Pretty::new(res2).show();
+    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (36,20)");
+    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (37,26)");
+    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (29,16)");
 
-    let res3 = session.query("SHOW TIMESERIES root.ln.wf01.wt01.status")?;
-    println!("{:#?}", res3);
-    Pretty::new(res3).show();
+    session.exec_query("SHOW STORAGE GROUP").show();
 
-    println!("{:?}", session.check_time_series_exists("root"));
+    if session.check_time_series_exists("root.ln") {
+        session.exec_query("SHOW TIMESERIES root.ln").show();
+        session.exec_query("select * from root.ln").show();
+    }
+
+    session
+        .exec_update("delete from root.ln.wf01.wt01.temperature where time<=2017-11-01T16:26:00")
+        .show();
 
     session.close()?;
 

@@ -3,7 +3,7 @@
 ![Logo](http://iotdb.apache.org/img/logo.png)
 
 <h1>iotdb-rs</h1>
-<h3>(WIP) Rust client for Apache IotDB</h3>
+<h3>(WIP) Apache IotDB Client written in Rust</h3>
 
 [![Crates.io](https://img.shields.io/crates/v/iotdb?style=flat-square&color=%23E5531A)](https://crates.io/crates/iotdb)
 [![Api Docs](https://img.shields.io/badge/Api-Doc-a94064?style=flat-square&color=%23E5531A)](https://docs.rs/iotdb)
@@ -36,13 +36,14 @@ iotdb = "0.0.3"
 ```rust
 use thrift::Error;
 
-use iotdb::pretty;
+use iotdb::util::{Compressor, TSDataType, TSEncoding};
 use iotdb::Client;
 use iotdb::Session;
 
 fn main() -> Result<(), Error> {
-    // let client = Client::new("localhost", "6667").enable_rpc_compaction().create()?;
-    let client = Client::new("localhost", "6667").create()?;
+    let client = Client::new("localhost", "6667")
+        // .enable_rpc_compaction()
+        .create()?;
 
     // open session
     let mut session = Session::new(client);
@@ -53,9 +54,38 @@ fn main() -> Result<(), Error> {
         .zone_id("UTC+8")
         .open()?;
 
-    let res = session.query("SHOW TIMESERIES root")?;
-    // println!("{:#?}", res);
-    pretty::result_set(res);
+    let storage_group = "root.ln";
+    session.delete_storage_group(storage_group)?;
+    session.set_storage_group(storage_group)?;
+
+    session.create_time_series(
+        "root.ln.wf01.wt01.temperature",
+        TSDataType::FLOAT,
+        TSEncoding::RLE,
+        Compressor::default(),
+    )?;
+
+    session.create_time_series(
+        "root.ln.wf01.wt01.humidity",
+        TSDataType::FLOAT,
+        TSEncoding::RLE,
+        Compressor::default(),
+    )?;
+
+    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (36,20)");
+    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (37,26)");
+    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (29,16)");
+
+    session.exec_query("SHOW STORAGE GROUP").show();
+
+    if session.check_time_series_exists("root.ln") {
+        session.exec_query("SHOW TIMESERIES root.ln").show();
+        session.exec_query("select * from root.ln").show();
+    }
+
+    session
+        .exec_update("delete from root.ln.wf01.wt01.temperature where time<=2017-11-01T16:26:00")
+        .show();
 
     session.close()?;
 
