@@ -93,6 +93,7 @@ use crate::rpc::{
 use chrono::{Local, Utc};
 use log::{debug, error, trace};
 use prettytable::{Cell, Row, Table};
+use std::alloc::dealloc;
 use std::collections::{BTreeMap, HashMap};
 use thrift::protocol::{
     TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
@@ -100,7 +101,6 @@ use thrift::protocol::{
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
 use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind, TransportErrorKind};
-use std::alloc::dealloc;
 
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
@@ -1007,7 +1007,8 @@ impl Session {
         let req = TSExecuteBatchStatementReq::new(self.session_id, statements);
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
-                if self.is_success(&status) {} else {
+                if self.is_success(&status) {
+                } else {
                     error!("{}", status.message.clone().unwrap());
                 }
             }
