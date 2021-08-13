@@ -30,12 +30,12 @@
 //! ```rust
 //! use thrift::Error;
 //!
-//! use iotdb::util::{Compressor, TSDataType, TSEncoding};
+//! use iotdb::common::{Compressor, DataType, Encoding};
 //! use iotdb::Client;
 //! use iotdb::Session;
 //!
 //! fn main() -> Result<(), Error> {
-//!    let client = Client::new("localhost", "6667")
+//!     let client = Client::new("localhost", "6667")
 //!         // .enable_rpc_compaction()
 //!         .create()?;
 //!
@@ -48,49 +48,41 @@
 //!         .zone_id("UTC+8")
 //!         .open()?;
 //!
-//!     let storage_group = "root.ln";
+//!    let storage_group = "root.ln";
 //!     session.delete_storage_group(storage_group)?;
 //!     session.set_storage_group(storage_group)?;
 //!
 //!     session.create_time_series(
 //!         "root.ln.wf01.wt01.temperature",
-//!         TSDataType::FLOAT,
-//!         TSEncoding::RLE,
+//!         DataType::INT64,
+//!         Encoding::RLE,
 //!         Compressor::default(),
 //!     )?;
 //!
 //!     session.create_time_series(
 //!         "root.ln.wf01.wt01.humidity",
-//!         TSDataType::FLOAT,
-//!         TSEncoding::RLE,
+//!         DataType::INT64,
+//!         Encoding::RLE,
 //!         Compressor::default(),
 //!     )?;
-//!
-//!     session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (36,20)");
-//!     session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (37,26)");
-//!     session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (29,16)");
 //!
 //!     session.exec_query("SHOW STORAGE GROUP").show();
 //!
 //!     if session.check_time_series_exists("root.ln") {
-//!        session.exec_query("SHOW TIMESERIES root.ln").show();
+//!         session.exec_query("SHOW TIMESERIES root.ln").show();
 //!         session.exec_query("select * from root.ln").show();
 //!     }
-//!
-//!     session
-//!         .exec_update("delete from root.ln.wf01.wt01.temperature where time<=2017-11-01T16:26:00")
-//!         .show();
 //!
 //!     session.close()?;
 //!
 //!     Ok(())
 //! }
 //! ```
-
+pub mod common;
 pub mod errors;
 pub mod rpc;
-pub mod util;
 
+use crate::common::{Compressor, DataType, Encoding, Logger};
 use crate::rpc::{
     TSCancelOperationReq, TSCloseSessionReq, TSCreateMultiTimeseriesReq, TSCreateTimeseriesReq,
     TSDeleteDataReq, TSExecuteBatchStatementReq, TSExecuteStatementReq, TSExecuteStatementResp,
@@ -98,7 +90,6 @@ use crate::rpc::{
     TSInsertTabletReq, TSInsertTabletsReq, TSOpenSessionReq, TSProtocolVersion, TSQueryDataSet,
     TSQueryNonAlignDataSet, TSRawDataQueryReq, TSSetTimeZoneReq, TSStatus, TTSIServiceSyncClient,
 };
-use crate::util::{Compressor, TSDataType, TSEncoding};
 use chrono::{Local, Utc};
 use log::{debug, error, trace};
 use prettytable::{Cell, Row, Table};
@@ -109,6 +100,7 @@ use thrift::protocol::{
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
 use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind, TransportErrorKind};
+use std::alloc::dealloc;
 
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
@@ -169,7 +161,7 @@ impl DataSet {
     }
 
     pub fn show(self) {
-        println!("Statement => {}", self.statement);
+        debug!("Show statement {}", self.statement);
         let mut table = Table::new();
 
         match self.columns {
@@ -185,15 +177,20 @@ impl DataSet {
                 match self.query_data_set {
                     Some(dataset) => {
                         let mut cells: Vec<Cell> = vec![];
+                        let index = 0;
                         for row in dataset.value_list {
+                            debug!("rows=> {:?}", row.clone());
+                            debug!("rows=> {:?}", String::from_utf8(row.clone()));
+
                             match String::from_utf8(row) {
                                 Ok(string) => {
                                     // TODO need to parse row record
                                     cells.push(Cell::new(string.as_str()))
                                 }
-                                Err(errors) => println!("Decode error: {}", errors),
+                                Err(errors) => debug!("Decode error: {}", errors),
                             }
                         }
+
                         table.add_row(Row::new(cells));
                     }
                     None => {
@@ -218,6 +215,7 @@ impl DataSet {
 pub struct Client {
     host: String,
     port: String,
+    log_level: String,
     rpc_compaction: bool,
 }
 
@@ -227,6 +225,7 @@ impl Default for Client {
             host: "localhost".to_string(),
             port: "6667".to_string(),
             rpc_compaction: false,
+            log_level: "info".to_string(),
         }
     }
 }
@@ -237,42 +236,44 @@ impl Client {
             host: host.to_string(),
             port: port.to_string(),
             rpc_compaction: Client::default().rpc_compaction,
+            log_level: "info".to_string(),
         }
     }
 
+    pub fn log_level(&mut self, level: &str) -> &mut Client {
+        self.log_level = level.to_string();
+        self
+    }
+
     pub fn enable_rpc_compaction(&mut self) -> &mut Client {
-        self.rpc_compaction = false;
+        self.rpc_compaction = true;
         self
     }
 
     pub fn create(&mut self) -> thrift::Result<ClientType> {
+        Logger::new(self.log_level.as_str(), None).init();
         trace!("Create a IotDB client");
 
         let mut channel = TTcpChannel::new();
         channel.open(format!("{}:{}", self.host, self.port).as_str())?;
         let (channel_in, channel_out) = channel.split()?;
 
-        let (in_protocol, out_protocol): (Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>);
+        let (transport_in, transport_out) = (
+            TFramedReadTransport::new(channel_in),
+            TFramedWriteTransport::new(channel_out),
+        );
+
+        let (protocol_in, protocol_out): (Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>);
         if self.rpc_compaction {
-            in_protocol = Box::new(TCompactInputProtocol::new(TFramedReadTransport::new(
-                channel_in,
-            )));
-            out_protocol = Box::new(TCompactOutputProtocol::new(TFramedWriteTransport::new(
-                channel_out,
-            )));
+            protocol_in = Box::new(TCompactInputProtocol::new(transport_in));
+            protocol_out = Box::new(TCompactOutputProtocol::new(transport_out));
             debug!("Create a compaction client");
         } else {
-            in_protocol = Box::new(TBinaryInputProtocol::new(
-                TFramedReadTransport::new(channel_in),
-                true,
-            ));
-            out_protocol = Box::new(TBinaryOutputProtocol::new(
-                TFramedWriteTransport::new(channel_out),
-                true,
-            ));
+            protocol_in = Box::new(TBinaryInputProtocol::new(transport_in, true));
+            protocol_out = Box::new(TBinaryOutputProtocol::new(transport_out, true));
             debug!("Create a binary client");
         }
-        Ok(TSIServiceSyncClient::new(in_protocol, out_protocol))
+        Ok(TSIServiceSyncClient::new(protocol_in, protocol_out))
     }
 }
 
@@ -437,7 +438,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "setting storage group {:?} message: {:?}",
+                        "Setting storage group {:?} message: {:?}",
                         storage_group,
                         status.message.unwrap()
                     );
@@ -473,7 +474,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "delete storage group(s) {:?} message: {:?}",
+                        "Delete storage group(s) {:?} message: {:?}",
                         storage_groups.clone(),
                         status.message.unwrap()
                     );
@@ -497,8 +498,8 @@ impl Session {
     pub fn create_time_series(
         &mut self,
         ts_path: &str,
-        data_type: TSDataType,
-        encoding: TSEncoding,
+        data_type: DataType,
+        encoding: Encoding,
         compressor: Compressor,
     ) -> Result<(), Error> {
         trace!("Create single time series");
@@ -517,7 +518,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "creating time series {:?} message: {:?}",
+                        "Creating time series {:?} message: {:?}",
                         ts_path,
                         status.message.unwrap()
                     );
@@ -561,7 +562,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "creating multiple time series {:?} message: {:?}",
+                        "Creating multiple time series {:?} message: {:?}",
                         ts_path_vec.clone(),
                         status.message.unwrap()
                     );
@@ -591,7 +592,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "deleting multiple time series {:?} message: {:?}",
+                        "Deleting multiple time series {:?} message: {:?}",
                         path_vec.clone(),
                         status.message.unwrap()
                     );
@@ -646,7 +647,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "delete data from {:?}, message: {:?}",
+                        "Delete data from {:?}, message: {:?}",
                         path_vec.clone(),
                         status.message.unwrap()
                     );
@@ -685,7 +686,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "insert string records to device {:?} message: {:?}",
+                        "Insert string records to device {:?} message: {:?}",
                         device_ids.clone(),
                         status.message.unwrap()
                     );
@@ -708,14 +709,14 @@ impl Session {
     /// Insert record
     pub fn insert_record(
         &mut self,
-        device_id: String,
+        device_id: &str,
         timestamp: i64,
         measurements: Vec<String>,
         values: Vec<u8>,
     ) -> Result<(), Error> {
         let req = TSInsertRecordReq::new(
             self.session_id,
-            device_id.clone(),
+            device_id.to_string(),
             measurements,
             values,
             timestamp,
@@ -724,7 +725,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "insert one record to device {:?} message: {:?}",
+                        "Insert one record to device {:?} message: {:?}",
                         device_id.clone(),
                         status.message.unwrap()
                     );
@@ -764,7 +765,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "testing! insert one record to device {:?} message: {:?}",
+                        "Testing! insert one record to device {:?} message: {:?}",
                         device_id.clone(),
                         status.message.unwrap()
                     );
@@ -803,7 +804,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "insert multiple records to devices {:?} message: {:?}",
+                        "Insert multiple records to devices {:?} message: {:?}",
                         device_ids.clone(),
                         status.message.unwrap()
                     );
@@ -843,7 +844,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "testing! insert multiple records, message: {:?}",
+                        "Testing! insert multiple records, message: {:?}",
                         status.message.unwrap()
                     );
                     Ok(())
@@ -948,7 +949,7 @@ impl Session {
 
     /// execute query sql statement and return a DataSet
     pub fn exec_query(&mut self, query: &str) -> DataSet {
-        debug!("Exec query statement \"{}\"", &query);
+        debug!("Exec query \"{}\"", &query);
         let req = TSExecuteStatementReq::new(
             self.session_id,
             query.to_string(),
@@ -1006,8 +1007,7 @@ impl Session {
         let req = TSExecuteBatchStatementReq::new(self.session_id, statements);
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
-                if self.is_success(&status) {
-                } else {
+                if self.is_success(&status) {} else {
                     error!("{}", status.message.clone().unwrap());
                 }
             }

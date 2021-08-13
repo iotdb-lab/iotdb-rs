@@ -36,12 +36,13 @@ iotdb = "0.0.3"
 ```rust
 use thrift::Error;
 
-use iotdb::util::{Compressor, TSDataType, TSEncoding};
+use iotdb::common::{Compressor, DataType, Encoding};
 use iotdb::Client;
 use iotdb::Session;
 
 fn main() -> Result<(), Error> {
     let client = Client::new("localhost", "6667")
+        .log_level("debug")
         // .enable_rpc_compaction()
         .create()?;
 
@@ -60,21 +61,17 @@ fn main() -> Result<(), Error> {
 
     session.create_time_series(
         "root.ln.wf01.wt01.temperature",
-        TSDataType::FLOAT,
-        TSEncoding::RLE,
+        DataType::INT64,
+        Encoding::RLE,
         Compressor::default(),
     )?;
 
     session.create_time_series(
         "root.ln.wf01.wt01.humidity",
-        TSDataType::FLOAT,
-        TSEncoding::RLE,
+        DataType::INT64,
+        Encoding::RLE,
         Compressor::default(),
     )?;
-
-    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (36,20)");
-    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (37,26)");
-    session.exec_insert("insert into root.ln.wf01.wt01(temperature, humidity) values (29,16)");
 
     session.exec_query("SHOW STORAGE GROUP").show();
 
@@ -82,10 +79,6 @@ fn main() -> Result<(), Error> {
         session.exec_query("SHOW TIMESERIES root.ln").show();
         session.exec_query("select * from root.ln").show();
     }
-
-    session
-        .exec_update("delete from root.ln.wf01.wt01.temperature where time<=2017-11-01T16:26:00")
-        .show();
 
     session.close()?;
 
