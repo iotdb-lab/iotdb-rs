@@ -17,10 +17,10 @@
 
 ## Overview
 
-IoTDB (Internet of Things Database) is a data management system for time series data, which can provide users specific 
-services, such as, data collection, storage and analysis. Due to its light weight structure, high performance and usable 
-features together with its seamless integration with the Hadoop and Spark ecology, IoTDB meets the requirements of massive
-dataset storage, high throughput data input, and complex data analysis in the industrial IoT field.
+IoTDB (Internet of Things Database) is a data management system for time series data, which can provide users specific
+services, such as, data collection, storage and analysis. Due to its light weight structure, high performance and usable
+features together with its seamless integration with the Hadoop and Spark ecology, IoTDB meets the requirements of
+massive dataset storage, high throughput data input, and complex data analysis in the industrial IoT field.
 
 ## How to use
 
@@ -28,7 +28,7 @@ Add `iotdb` to your `Cargo.toml`
 
 ```toml
 [dependencies]
-iotdb = "0.0.3"
+iotdb = "0.0.4"
 ```
 
 ## Example
@@ -37,48 +37,36 @@ iotdb = "0.0.3"
 use thrift::Error;
 
 use iotdb::common::{Compressor, DataType, Encoding};
-use iotdb::Client;
-use iotdb::Session;
+use iotdb::{Config, Session};
 
 fn main() -> Result<(), Error> {
-    let client = Client::new("localhost", "6667")
-        .log_level("debug")
-        // .enable_rpc_compaction()
-        .create()?;
-
-    // open session
-    let mut session = Session::new(client);
-
-    session
+    let config = Config::new("127.0.0.1", "6667")
         .user("root")
         .password("root")
         .zone_id("UTC+8")
-        .open()?;
+        // .log_level("debug")
+        .build();
 
-    let storage_group = "root.ln";
-    session.delete_storage_group(storage_group)?;
-    session.set_storage_group(storage_group)?;
-
+    // open session
+    let mut session = Session::new(config).open()?;
+    session.sql("SHOW STORAGE GROUP")?.show();
+    // session.set_storage_group("root.ln")?;
     session.create_time_series(
         "root.ln.wf01.wt01.temperature",
         DataType::INT64,
-        Encoding::RLE,
+        Encoding::default(),
         Compressor::default(),
     )?;
 
     session.create_time_series(
         "root.ln.wf01.wt01.humidity",
         DataType::INT64,
-        Encoding::RLE,
+        Encoding::default(),
         Compressor::default(),
     )?;
 
-    session.exec_query("SHOW STORAGE GROUP").show();
-
-    if session.check_time_series_exists("root.ln") {
-        session.exec_query("SHOW TIMESERIES root.ln").show();
-        session.exec_query("select * from root.ln").show();
-    }
+    session.sql("SHOW TIMESERIES root.ln")?.show();
+    session.sql("select * from root.ln")?.show();
 
     session.close()?;
 

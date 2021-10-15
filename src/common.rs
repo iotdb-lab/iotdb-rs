@@ -1,28 +1,41 @@
+use fern::Dispatch;
+use std::io;
+use std::path::PathBuf;
+
+/// IotDB datatype enum
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DataType {
-    BOOLEAN = 0,
-    INT32 = 1,
-    INT64 = 2,
-    FLOAT = 3,
-    DOUBLE = 4,
-    TEXT = 5,
+    BOOLEAN,
+    INT32,
+    INT64,
+    FLOAT,
+    DOUBLE,
+    TEXT,
 }
 
-impl Default for DataType {
-    fn default() -> Self {
-        DataType::TEXT
+impl From<&String> for DataType {
+    fn from(value: &String) -> Self {
+        match value.as_str() {
+            "BOOLEAN" => DataType::BOOLEAN,
+            "INT32" => DataType::INT32,
+            "INT64" => DataType::INT64,
+            "FLOAT" => DataType::FLOAT,
+            "DOUBLE" => DataType::DOUBLE,
+            "TEXT" => DataType::TEXT,
+            _ => panic!("This '{}' data type doesn't exist", value),
+        }
     }
 }
 
-impl From<i32> for DataType {
-    fn from(value: i32) -> Self {
+impl From<&str> for DataType {
+    fn from(value: &str) -> Self {
         match value {
-            0 => DataType::BOOLEAN,
-            1 => DataType::INT32,
-            2 => DataType::INT64,
-            3 => DataType::FLOAT,
-            4 => DataType::DOUBLE,
-            5 => DataType::TEXT,
+            "BOOLEAN" => DataType::BOOLEAN,
+            "INT32" => DataType::INT32,
+            "INT64" => DataType::INT64,
+            "FLOAT" => DataType::FLOAT,
+            "DOUBLE" => DataType::DOUBLE,
+            "TEXT" => DataType::TEXT,
             _ => panic!("This '{}' data type doesn't exist", value),
         }
     }
@@ -41,17 +54,18 @@ impl Into<i32> for DataType {
     }
 }
 
+/// IotDB encoding enum
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Encoding {
-    PLAIN = 0,
-    PlainDictionary = 1,
-    RLE = 2,
-    DIFF = 3,
-    Ts2diff = 4,
-    BITMAP = 5,
-    GorillaV1 = 6,
-    REGULAR = 7,
-    GORILLA = 8,
+    PLAIN,
+    PlainDictionary,
+    RLE,
+    DIFF,
+    Ts2diff,
+    BITMAP,
+    GorillaV1,
+    REGULAR,
+    GORILLA,
 }
 
 impl Default for Encoding {
@@ -77,6 +91,40 @@ impl From<i32> for Encoding {
     }
 }
 
+impl From<&str> for Encoding {
+    fn from(value: &str) -> Self {
+        match value {
+            "PLAIN" => Encoding::PLAIN,
+            "PlainDictionary" => Encoding::PlainDictionary,
+            "RLE" => Encoding::RLE,
+            "DIFF" => Encoding::DIFF,
+            "Ts2diff" => Encoding::Ts2diff,
+            "BITMAP" => Encoding::BITMAP,
+            "GorillaV1" => Encoding::GorillaV1,
+            "REGULAR" => Encoding::REGULAR,
+            "GORILLA" => Encoding::GORILLA,
+            _ => panic!("This '{}' encoding doesn't exist", value),
+        }
+    }
+}
+
+impl From<String> for Encoding {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "PLAIN" => Encoding::PLAIN,
+            "PlainDictionary" => Encoding::PlainDictionary,
+            "RLE" => Encoding::RLE,
+            "DIFF" => Encoding::DIFF,
+            "Ts2diff" => Encoding::Ts2diff,
+            "BITMAP" => Encoding::BITMAP,
+            "GorillaV1" => Encoding::GorillaV1,
+            "REGULAR" => Encoding::REGULAR,
+            "GORILLA" => Encoding::GORILLA,
+            _ => panic!("This '{}' encoding doesn't exist", value),
+        }
+    }
+}
+
 impl Into<i32> for Encoding {
     fn into(self) -> i32 {
         match self {
@@ -93,16 +141,17 @@ impl Into<i32> for Encoding {
     }
 }
 
+/// IotDB compressor enum
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Compressor {
-    UNCOMPRESSED = 0,
-    SNAPPY = 1,
-    GZIP = 2,
-    LZO = 3,
-    SDT = 4,
-    PAA = 5,
-    PLA = 6,
-    LZ4 = 7,
+    UNCOMPRESSED,
+    SNAPPY,
+    GZIP,
+    LZO,
+    SDT,
+    PAA,
+    PLA,
+    LZ4,
 }
 
 impl Default for Compressor {
@@ -127,6 +176,38 @@ impl From<i32> for Compressor {
     }
 }
 
+impl From<&str> for Compressor {
+    fn from(value: &str) -> Self {
+        match value {
+            "UNCOMPRESSED" => Compressor::UNCOMPRESSED,
+            "SNAPPY" => Compressor::SNAPPY,
+            "GZIP" => Compressor::GZIP,
+            "LZO" => Compressor::LZO,
+            "SDT" => Compressor::SDT,
+            "PAA" => Compressor::PAA,
+            "PLA" => Compressor::PLA,
+            "LZ4" => Compressor::LZ4,
+            _ => panic!("This '{}' compressor doesn't exist", value),
+        }
+    }
+}
+
+impl From<String> for Compressor {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "UNCOMPRESSED" => Compressor::UNCOMPRESSED,
+            "SNAPPY" => Compressor::SNAPPY,
+            "GZIP" => Compressor::GZIP,
+            "LZO" => Compressor::LZO,
+            "SDT" => Compressor::SDT,
+            "PAA" => Compressor::PAA,
+            "PLA" => Compressor::PLA,
+            "LZ4" => Compressor::LZ4,
+            _ => panic!("This '{}' compressor doesn't exist", value),
+        }
+    }
+}
+
 impl Into<i32> for Compressor {
     fn into(self) -> i32 {
         match self {
@@ -141,67 +222,6 @@ impl Into<i32> for Compressor {
         }
     }
 }
-
-#[derive(Copy, Clone, Debug)]
-pub struct Field {
-    data_type: DataType,
-    bool_value: Option<bool>,
-    int_value: Option<i32>,
-    long_value: Option<i64>,
-    float_value: Option<f32>,
-    double_value: Option<f64>,
-    binary_value: Option<u8>,
-}
-
-impl Default for Field {
-    fn default() -> Self {
-        Self {
-            data_type: DataType::default(),
-            bool_value: None,
-            int_value: None,
-            long_value: None,
-            float_value: None,
-            double_value: None,
-            binary_value: None,
-        }
-    }
-}
-
-impl Field {
-    pub fn new(data_type: DataType) -> Self {
-        let mut field = Field::default();
-
-        if !DataType::default().eq(&data_type) {
-            field.data_type = data_type
-        }
-
-        field
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct RowRecord {
-    timestamp: i64,
-    fields: Vec<Field>,
-}
-
-impl RowRecord {
-    pub fn new(timestamp: i64, fields: Vec<Field>) -> Self {
-        Self { timestamp, fields }
-    }
-
-    pub fn add_field(&mut self, field: Field) {
-        self.fields.push(field)
-    }
-}
-
-pub struct Tablet {}
-
-impl Tablet {}
-
-use fern::Dispatch;
-use std::io;
-use std::path::PathBuf;
 
 /// Logger
 pub struct Logger {

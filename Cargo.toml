@@ -1,6 +1,6 @@
 [package]
 name = "iotdb"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2018"
 license = "Apache-2.0"
 readme = "README.md"
@@ -8,11 +8,13 @@ authors = ["francis-du <francis@francisdu.com>"]
 repository = "https://github.com/francis-du/iotdb-rs"
 documentation = "https://docs.rs/iotdb"
 description = "Apache IotDB Client written in Rust"
-keywords = ["client", "iotdb","thrift"]
+keywords = ["thrift", "client", "iotdb", "lib"]
 
 [dependencies]
 prettytable-rs = "^0.8"
-chrono = "0.4.19"
-thrift = "0.13"
+chrono = "0.4"
+thrift = "0.15"
 log = "0.4.13"
 fern = "0.6.0"
+byteorder = "1"
+mimalloc = { version = "*", default-features = false }
