@@ -14,6 +14,8 @@ fn main() -> Result<(), Error> {
 
     // open session
     let mut session = Session::new(config).open()?;
+    println!("time_zone: {}", session.time_zone()?);
+
     session.sql("SHOW STORAGE GROUP")?.show();
     // session.set_storage_group("root.ln")?;
     session.create_time_series(

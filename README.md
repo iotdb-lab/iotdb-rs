@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](http://iotdb.apache.org/img/logo.png)
+![logo](iotdb-rs.png)
 
 <h1>iotdb-rs</h1>
 <h3>(WIP) Apache IotDB Client written in Rust</h3>

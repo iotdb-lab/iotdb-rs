@@ -426,6 +426,208 @@ impl TSQueryNonAlignDataSet {
 }
 
 //
+// TSTracingInfo
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSTracingInfo {
+  pub activity_list: Vec<String>,
+  pub elapsed_time_list: Vec<i64>,
+  pub series_path_num: Option<i32>,
+  pub seq_file_num: Option<i32>,
+  pub un_seq_file_num: Option<i32>,
+  pub sequence_chunk_num: Option<i32>,
+  pub sequence_chunk_point_num: Option<i64>,
+  pub unsequence_chunk_num: Option<i32>,
+  pub unsequence_chunk_point_num: Option<i64>,
+  pub total_page_num: Option<i32>,
+  pub overlapped_page_num: Option<i32>,
+}
+
+impl TSTracingInfo {
+  pub fn new<F3, F4, F5, F6, F7, F8, F9, F10, F11>(activity_list: Vec<String>, elapsed_time_list: Vec<i64>, series_path_num: F3, seq_file_num: F4, un_seq_file_num: F5, sequence_chunk_num: F6, sequence_chunk_point_num: F7, unsequence_chunk_num: F8, unsequence_chunk_point_num: F9, total_page_num: F10, overlapped_page_num: F11) -> TSTracingInfo where F3: Into<Option<i32>>, F4: Into<Option<i32>>, F5: Into<Option<i32>>, F6: Into<Option<i32>>, F7: Into<Option<i64>>, F8: Into<Option<i32>>, F9: Into<Option<i64>>, F10: Into<Option<i32>>, F11: Into<Option<i32>> {
+    TSTracingInfo {
+      activity_list,
+      elapsed_time_list,
+      series_path_num: series_path_num.into(),
+      seq_file_num: seq_file_num.into(),
+      un_seq_file_num: un_seq_file_num.into(),
+      sequence_chunk_num: sequence_chunk_num.into(),
+      sequence_chunk_point_num: sequence_chunk_point_num.into(),
+      unsequence_chunk_num: unsequence_chunk_num.into(),
+      unsequence_chunk_point_num: unsequence_chunk_point_num.into(),
+      total_page_num: total_page_num.into(),
+      overlapped_page_num: overlapped_page_num.into(),
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSTracingInfo> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<Vec<String>> = None;
+    let mut f_2: Option<Vec<i64>> = None;
+    let mut f_3: Option<i32> = None;
+    let mut f_4: Option<i32> = None;
+    let mut f_5: Option<i32> = None;
+    let mut f_6: Option<i32> = None;
+    let mut f_7: Option<i64> = None;
+    let mut f_8: Option<i32> = None;
+    let mut f_9: Option<i64> = None;
+    let mut f_10: Option<i32> = None;
+    let mut f_11: Option<i32> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_5 = i_prot.read_string()?;
+            val.push(list_elem_5);
+          }
+          i_prot.read_list_end()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<i64> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_6 = i_prot.read_i64()?;
+            val.push(list_elem_6);
+          }
+          i_prot.read_list_end()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let val = i_prot.read_i32()?;
+          f_3 = Some(val);
+        },
+        4 => {
+          let val = i_prot.read_i32()?;
+          f_4 = Some(val);
+        },
+        5 => {
+          let val = i_prot.read_i32()?;
+          f_5 = Some(val);
+        },
+        6 => {
+          let val = i_prot.read_i32()?;
+          f_6 = Some(val);
+        },
+        7 => {
+          let val = i_prot.read_i64()?;
+          f_7 = Some(val);
+        },
+        8 => {
+          let val = i_prot.read_i32()?;
+          f_8 = Some(val);
+        },
+        9 => {
+          let val = i_prot.read_i64()?;
+          f_9 = Some(val);
+        },
+        10 => {
+          let val = i_prot.read_i32()?;
+          f_10 = Some(val);
+        },
+        11 => {
+          let val = i_prot.read_i32()?;
+          f_11 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSTracingInfo.activity_list", &f_1)?;
+    verify_required_field_exists("TSTracingInfo.elapsed_time_list", &f_2)?;
+    let ret = TSTracingInfo {
+      activity_list: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      elapsed_time_list: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      series_path_num: f_3,
+      seq_file_num: f_4,
+      un_seq_file_num: f_5,
+      sequence_chunk_num: f_6,
+      sequence_chunk_point_num: f_7,
+      unsequence_chunk_num: f_8,
+      unsequence_chunk_point_num: f_9,
+      total_page_num: f_10,
+      overlapped_page_num: f_11,
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSTracingInfo");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("activityList", TType::List, 1))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::String, self.activity_list.len() as i32))?;
+    for e in &self.activity_list {
+      o_prot.write_string(e)?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("elapsedTimeList", TType::List, 2))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::I64, self.elapsed_time_list.len() as i32))?;
+    for e in &self.elapsed_time_list {
+      o_prot.write_i64(*e)?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    if let Some(fld_var) = self.series_path_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("seriesPathNum", TType::I32, 3))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.seq_file_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("seqFileNum", TType::I32, 4))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.un_seq_file_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("unSeqFileNum", TType::I32, 5))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.sequence_chunk_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("sequenceChunkNum", TType::I32, 6))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.sequence_chunk_point_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("sequenceChunkPointNum", TType::I64, 7))?;
+      o_prot.write_i64(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.unsequence_chunk_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("unsequenceChunkNum", TType::I32, 8))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.unsequence_chunk_point_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("unsequenceChunkPointNum", TType::I64, 9))?;
+      o_prot.write_i64(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.total_page_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("totalPageNum", TType::I32, 10))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.overlapped_page_num {
+      o_prot.write_field_begin(&TFieldIdentifier::new("overlappedPageNum", TType::I32, 11))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
 // TSExecuteStatementResp
 //
 
@@ -442,10 +644,11 @@ pub struct TSExecuteStatementResp {
   pub column_name_index_map: Option<BTreeMap<String, i32>>,
   pub sg_columns: Option<Vec<String>>,
   pub alias_columns: Option<Vec<i8>>,
+  pub tracing_info: Option<TSTracingInfo>,
 }
 
 impl TSExecuteStatementResp {
-  pub fn new<F2, F3, F4, F5, F6, F7, F8, F9, F10, F11>(status: TSStatus, query_id: F2, columns: F3, operation_type: F4, ignore_time_stamp: F5, data_type_list: F6, query_data_set: F7, non_align_query_data_set: F8, column_name_index_map: F9, sg_columns: F10, alias_columns: F11) -> TSExecuteStatementResp where F2: Into<Option<i64>>, F3: Into<Option<Vec<String>>>, F4: Into<Option<String>>, F5: Into<Option<bool>>, F6: Into<Option<Vec<String>>>, F7: Into<Option<TSQueryDataSet>>, F8: Into<Option<TSQueryNonAlignDataSet>>, F9: Into<Option<BTreeMap<String, i32>>>, F10: Into<Option<Vec<String>>>, F11: Into<Option<Vec<i8>>> {
+  pub fn new<F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12>(status: TSStatus, query_id: F2, columns: F3, operation_type: F4, ignore_time_stamp: F5, data_type_list: F6, query_data_set: F7, non_align_query_data_set: F8, column_name_index_map: F9, sg_columns: F10, alias_columns: F11, tracing_info: F12) -> TSExecuteStatementResp where F2: Into<Option<i64>>, F3: Into<Option<Vec<String>>>, F4: Into<Option<String>>, F5: Into<Option<bool>>, F6: Into<Option<Vec<String>>>, F7: Into<Option<TSQueryDataSet>>, F8: Into<Option<TSQueryNonAlignDataSet>>, F9: Into<Option<BTreeMap<String, i32>>>, F10: Into<Option<Vec<String>>>, F11: Into<Option<Vec<i8>>>, F12: Into<Option<TSTracingInfo>> {
     TSExecuteStatementResp {
       status,
       query_id: query_id.into(),
@@ -458,6 +661,7 @@ impl TSExecuteStatementResp {
       column_name_index_map: column_name_index_map.into(),
       sg_columns: sg_columns.into(),
       alias_columns: alias_columns.into(),
+      tracing_info: tracing_info.into(),
     }
   }
   pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSExecuteStatementResp> {
@@ -473,6 +677,7 @@ impl TSExecuteStatementResp {
     let mut f_9: Option<BTreeMap<String, i32>> = None;
     let mut f_10: Option<Vec<String>> = None;
     let mut f_11: Option<Vec<i8>> = None;
+    let mut f_12: Option<TSTracingInfo> = None;
     loop {
       let field_ident = i_prot.read_field_begin()?;
       if field_ident.field_type == TType::Stop {
@@ -492,8 +697,8 @@ impl TSExecuteStatementResp {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_5 = i_prot.read_string()?;
-            val.push(list_elem_5);
+            let list_elem_7 = i_prot.read_string()?;
+            val.push(list_elem_7);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -510,8 +715,8 @@ impl TSExecuteStatementResp {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_6 = i_prot.read_string()?;
-            val.push(list_elem_6);
+            let list_elem_8 = i_prot.read_string()?;
+            val.push(list_elem_8);
           }
           i_prot.read_list_end()?;
           f_6 = Some(val);
@@ -528,9 +733,9 @@ impl TSExecuteStatementResp {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, i32> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_7 = i_prot.read_string()?;
-            let map_val_8 = i_prot.read_i32()?;
-            val.insert(map_key_7, map_val_8);
+            let map_key_9 = i_prot.read_string()?;
+            let map_val_10 = i_prot.read_i32()?;
+            val.insert(map_key_9, map_val_10);
           }
           i_prot.read_map_end()?;
           f_9 = Some(val);
@@ -539,8 +744,8 @@ impl TSExecuteStatementResp {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_9 = i_prot.read_string()?;
-            val.push(list_elem_9);
+            let list_elem_11 = i_prot.read_string()?;
+            val.push(list_elem_11);
           }
           i_prot.read_list_end()?;
           f_10 = Some(val);
@@ -549,11 +754,15 @@ impl TSExecuteStatementResp {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i8> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_10 = i_prot.read_i8()?;
-            val.push(list_elem_10);
+            let list_elem_12 = i_prot.read_i8()?;
+            val.push(list_elem_12);
           }
           i_prot.read_list_end()?;
           f_11 = Some(val);
+        },
+        12 => {
+          let val = TSTracingInfo::read_from_in_protocol(i_prot)?;
+          f_12 = Some(val);
         },
         _ => {
           i_prot.skip(field_ident.field_type)?;
@@ -575,6 +784,7 @@ impl TSExecuteStatementResp {
       column_name_index_map: f_9,
       sg_columns: f_10,
       alias_columns: f_11,
+      tracing_info: f_12,
     };
     Ok(ret)
   }
@@ -655,6 +865,11 @@ impl TSExecuteStatementResp {
       o_prot.write_list_end()?;
       o_prot.write_field_end()?
     }
+    if let Some(ref fld_var) = self.tracing_info {
+      o_prot.write_field_begin(&TFieldIdentifier::new("tracingInfo", TType::Struct, 12))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
     o_prot.write_field_stop()?;
     o_prot.write_struct_end()
   }
@@ -710,9 +925,9 @@ impl TSOpenSessionResp {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_11 = i_prot.read_string()?;
-            let map_val_12 = i_prot.read_string()?;
-            val.insert(map_key_11, map_val_12);
+            let map_key_13 = i_prot.read_string()?;
+            let map_val_14 = i_prot.read_string()?;
+            val.insert(map_key_13, map_val_14);
           }
           i_prot.read_map_end()?;
           f_4 = Some(val);
@@ -820,9 +1035,9 @@ impl TSOpenSessionReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_13 = i_prot.read_string()?;
-            let map_val_14 = i_prot.read_string()?;
-            val.insert(map_key_13, map_val_14);
+            let map_key_15 = i_prot.read_string()?;
+            let map_val_16 = i_prot.read_string()?;
+            val.insert(map_key_15, map_val_16);
           }
           i_prot.read_map_end()?;
           f_5 = Some(val);
@@ -1097,8 +1312,8 @@ impl TSExecuteBatchStatementReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_15 = i_prot.read_string()?;
-            val.push(list_elem_15);
+            let list_elem_17 = i_prot.read_string()?;
+            val.push(list_elem_17);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -1608,8 +1823,8 @@ impl TSFetchMetadataResp {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_16 = i_prot.read_string()?;
-            val.push(list_elem_16);
+            let list_elem_18 = i_prot.read_string()?;
+            val.push(list_elem_18);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -1924,8 +2139,8 @@ impl TSInsertRecordReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_17 = i_prot.read_string()?;
-            val.push(list_elem_17);
+            let list_elem_19 = i_prot.read_string()?;
+            val.push(list_elem_19);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -2048,8 +2263,8 @@ impl TSInsertStringRecordReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_18 = i_prot.read_string()?;
-            val.push(list_elem_18);
+            let list_elem_20 = i_prot.read_string()?;
+            val.push(list_elem_20);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -2058,8 +2273,8 @@ impl TSInsertStringRecordReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_19 = i_prot.read_string()?;
-            val.push(list_elem_19);
+            let list_elem_21 = i_prot.read_string()?;
+            val.push(list_elem_21);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -2188,8 +2403,8 @@ impl TSInsertTabletReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_20 = i_prot.read_string()?;
-            val.push(list_elem_20);
+            let list_elem_22 = i_prot.read_string()?;
+            val.push(list_elem_22);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -2206,8 +2421,8 @@ impl TSInsertTabletReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_21 = i_prot.read_i32()?;
-            val.push(list_elem_21);
+            let list_elem_23 = i_prot.read_i32()?;
+            val.push(list_elem_23);
           }
           i_prot.read_list_end()?;
           f_6 = Some(val);
@@ -2342,8 +2557,8 @@ impl TSInsertTabletsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_22 = i_prot.read_string()?;
-            val.push(list_elem_22);
+            let list_elem_24 = i_prot.read_string()?;
+            val.push(list_elem_24);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -2353,13 +2568,13 @@ impl TSInsertTabletsReq {
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_23: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_25: Vec<String> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_24 = i_prot.read_string()?;
-              list_elem_23.push(list_elem_24);
+              let list_elem_26 = i_prot.read_string()?;
+              list_elem_25.push(list_elem_26);
             }
             i_prot.read_list_end()?;
-            val.push(list_elem_23);
+            val.push(list_elem_25);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -2368,8 +2583,8 @@ impl TSInsertTabletsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<Vec<u8>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_25 = i_prot.read_bytes()?;
-            val.push(list_elem_25);
+            let list_elem_27 = i_prot.read_bytes()?;
+            val.push(list_elem_27);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -2378,8 +2593,8 @@ impl TSInsertTabletsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<Vec<u8>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_26 = i_prot.read_bytes()?;
-            val.push(list_elem_26);
+            let list_elem_28 = i_prot.read_bytes()?;
+            val.push(list_elem_28);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -2389,13 +2604,13 @@ impl TSInsertTabletsReq {
           let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_27: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_29: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_28 = i_prot.read_i32()?;
-              list_elem_27.push(list_elem_28);
+              let list_elem_30 = i_prot.read_i32()?;
+              list_elem_29.push(list_elem_30);
             }
             i_prot.read_list_end()?;
-            val.push(list_elem_27);
+            val.push(list_elem_29);
           }
           i_prot.read_list_end()?;
           f_6 = Some(val);
@@ -2404,8 +2619,8 @@ impl TSInsertTabletsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_29 = i_prot.read_i32()?;
-            val.push(list_elem_29);
+            let list_elem_31 = i_prot.read_i32()?;
+            val.push(list_elem_31);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
@@ -2554,8 +2769,8 @@ impl TSInsertRecordsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_30 = i_prot.read_string()?;
-            val.push(list_elem_30);
+            let list_elem_32 = i_prot.read_string()?;
+            val.push(list_elem_32);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -2565,13 +2780,13 @@ impl TSInsertRecordsReq {
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_31: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_33: Vec<String> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_32 = i_prot.read_string()?;
-              list_elem_31.push(list_elem_32);
+              let list_elem_34 = i_prot.read_string()?;
+              list_elem_33.push(list_elem_34);
             }
             i_prot.read_list_end()?;
-            val.push(list_elem_31);
+            val.push(list_elem_33);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -2580,8 +2795,8 @@ impl TSInsertRecordsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<Vec<u8>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_33 = i_prot.read_bytes()?;
-            val.push(list_elem_33);
+            let list_elem_35 = i_prot.read_bytes()?;
+            val.push(list_elem_35);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -2590,8 +2805,8 @@ impl TSInsertRecordsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i64> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_34 = i_prot.read_i64()?;
-            val.push(list_elem_34);
+            let list_elem_36 = i_prot.read_i64()?;
+            val.push(list_elem_36);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -2723,13 +2938,13 @@ impl TSInsertRecordsOfOneDeviceReq {
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_35: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_37: Vec<String> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_36 = i_prot.read_string()?;
-              list_elem_35.push(list_elem_36);
+              let list_elem_38 = i_prot.read_string()?;
+              list_elem_37.push(list_elem_38);
             }
             i_prot.read_list_end()?;
-            val.push(list_elem_35);
+            val.push(list_elem_37);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -2738,8 +2953,8 @@ impl TSInsertRecordsOfOneDeviceReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<Vec<u8>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_37 = i_prot.read_bytes()?;
-            val.push(list_elem_37);
+            let list_elem_39 = i_prot.read_bytes()?;
+            val.push(list_elem_39);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -2748,8 +2963,8 @@ impl TSInsertRecordsOfOneDeviceReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i64> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_38 = i_prot.read_i64()?;
-            val.push(list_elem_38);
+            let list_elem_40 = i_prot.read_i64()?;
+            val.push(list_elem_40);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -2872,29 +3087,13 @@ impl TSInsertStringRecordsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_39 = i_prot.read_string()?;
-            val.push(list_elem_39);
+            let list_elem_41 = i_prot.read_string()?;
+            val.push(list_elem_41);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
         },
         3 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_40: Vec<String> = Vec::with_capacity(list_ident.size as usize);
-            for _ in 0..list_ident.size {
-              let list_elem_41 = i_prot.read_string()?;
-              list_elem_40.push(list_elem_41);
-            }
-            i_prot.read_list_end()?;
-            val.push(list_elem_40);
-          }
-          i_prot.read_list_end()?;
-          f_3 = Some(val);
-        },
-        4 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
@@ -2908,14 +3107,30 @@ impl TSInsertStringRecordsReq {
             val.push(list_elem_42);
           }
           i_prot.read_list_end()?;
+          f_3 = Some(val);
+        },
+        4 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_ident = i_prot.read_list_begin()?;
+            let mut list_elem_44: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            for _ in 0..list_ident.size {
+              let list_elem_45 = i_prot.read_string()?;
+              list_elem_44.push(list_elem_45);
+            }
+            i_prot.read_list_end()?;
+            val.push(list_elem_44);
+          }
+          i_prot.read_list_end()?;
           f_4 = Some(val);
         },
         5 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i64> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_44 = i_prot.read_i64()?;
-            val.push(list_elem_44);
+            let list_elem_46 = i_prot.read_i64()?;
+            val.push(list_elem_46);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -3040,8 +3255,8 @@ impl TSDeleteDataReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_45 = i_prot.read_string()?;
-            val.push(list_elem_45);
+            let list_elem_47 = i_prot.read_string()?;
+            val.push(list_elem_47);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3170,9 +3385,9 @@ impl TSCreateTimeseriesReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_46 = i_prot.read_string()?;
-            let map_val_47 = i_prot.read_string()?;
-            val.insert(map_key_46, map_val_47);
+            let map_key_48 = i_prot.read_string()?;
+            let map_val_49 = i_prot.read_string()?;
+            val.insert(map_key_48, map_val_49);
           }
           i_prot.read_map_end()?;
           f_6 = Some(val);
@@ -3181,9 +3396,9 @@ impl TSCreateTimeseriesReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_48 = i_prot.read_string()?;
-            let map_val_49 = i_prot.read_string()?;
-            val.insert(map_key_48, map_val_49);
+            let map_key_50 = i_prot.read_string()?;
+            let map_val_51 = i_prot.read_string()?;
+            val.insert(map_key_50, map_val_51);
           }
           i_prot.read_map_end()?;
           f_7 = Some(val);
@@ -3192,9 +3407,9 @@ impl TSCreateTimeseriesReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_50 = i_prot.read_string()?;
-            let map_val_51 = i_prot.read_string()?;
-            val.insert(map_key_50, map_val_51);
+            let map_key_52 = i_prot.read_string()?;
+            let map_val_53 = i_prot.read_string()?;
+            val.insert(map_key_52, map_val_53);
           }
           i_prot.read_map_end()?;
           f_8 = Some(val);
@@ -3341,8 +3556,8 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_52 = i_prot.read_string()?;
-            val.push(list_elem_52);
+            let list_elem_54 = i_prot.read_string()?;
+            val.push(list_elem_54);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -3351,8 +3566,8 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_53 = i_prot.read_i32()?;
-            val.push(list_elem_53);
+            let list_elem_55 = i_prot.read_i32()?;
+            val.push(list_elem_55);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -3361,8 +3576,8 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_54 = i_prot.read_i32()?;
-            val.push(list_elem_54);
+            let list_elem_56 = i_prot.read_i32()?;
+            val.push(list_elem_56);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -3375,8 +3590,8 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_55 = i_prot.read_string()?;
-            val.push(list_elem_55);
+            let list_elem_57 = i_prot.read_string()?;
+            val.push(list_elem_57);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
@@ -3506,8 +3721,8 @@ impl TSRawDataQueryReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_56 = i_prot.read_string()?;
-            val.push(list_elem_56);
+            let list_elem_58 = i_prot.read_string()?;
+            val.push(list_elem_58);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3653,8 +3868,8 @@ impl TSLastDataQueryReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_57 = i_prot.read_string()?;
-            val.push(list_elem_57);
+            let list_elem_59 = i_prot.read_string()?;
+            val.push(list_elem_59);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3797,8 +4012,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_58 = i_prot.read_string()?;
-            val.push(list_elem_58);
+            let list_elem_60 = i_prot.read_string()?;
+            val.push(list_elem_60);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3807,8 +4022,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_59 = i_prot.read_i32()?;
-            val.push(list_elem_59);
+            let list_elem_61 = i_prot.read_i32()?;
+            val.push(list_elem_61);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -3817,8 +4032,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_60 = i_prot.read_i32()?;
-            val.push(list_elem_60);
+            let list_elem_62 = i_prot.read_i32()?;
+            val.push(list_elem_62);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -3827,8 +4042,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_61 = i_prot.read_i32()?;
-            val.push(list_elem_61);
+            let list_elem_63 = i_prot.read_i32()?;
+            val.push(list_elem_63);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -3838,14 +4053,14 @@ impl TSCreateMultiTimeseriesReq {
           let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let map_ident = i_prot.read_map_begin()?;
-            let mut list_elem_62: BTreeMap<String, String> = BTreeMap::new();
+            let mut list_elem_64: BTreeMap<String, String> = BTreeMap::new();
             for _ in 0..map_ident.size {
-              let map_key_63 = i_prot.read_string()?;
-              let map_val_64 = i_prot.read_string()?;
-              list_elem_62.insert(map_key_63, map_val_64);
+              let map_key_65 = i_prot.read_string()?;
+              let map_val_66 = i_prot.read_string()?;
+              list_elem_64.insert(map_key_65, map_val_66);
             }
             i_prot.read_map_end()?;
-            val.push(list_elem_62);
+            val.push(list_elem_64);
           }
           i_prot.read_list_end()?;
           f_6 = Some(val);
@@ -3855,14 +4070,14 @@ impl TSCreateMultiTimeseriesReq {
           let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let map_ident = i_prot.read_map_begin()?;
-            let mut list_elem_65: BTreeMap<String, String> = BTreeMap::new();
+            let mut list_elem_67: BTreeMap<String, String> = BTreeMap::new();
             for _ in 0..map_ident.size {
-              let map_key_66 = i_prot.read_string()?;
-              let map_val_67 = i_prot.read_string()?;
-              list_elem_65.insert(map_key_66, map_val_67);
+              let map_key_68 = i_prot.read_string()?;
+              let map_val_69 = i_prot.read_string()?;
+              list_elem_67.insert(map_key_68, map_val_69);
             }
             i_prot.read_map_end()?;
-            val.push(list_elem_65);
+            val.push(list_elem_67);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
@@ -3872,14 +4087,14 @@ impl TSCreateMultiTimeseriesReq {
           let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let map_ident = i_prot.read_map_begin()?;
-            let mut list_elem_68: BTreeMap<String, String> = BTreeMap::new();
+            let mut list_elem_70: BTreeMap<String, String> = BTreeMap::new();
             for _ in 0..map_ident.size {
-              let map_key_69 = i_prot.read_string()?;
-              let map_val_70 = i_prot.read_string()?;
-              list_elem_68.insert(map_key_69, map_val_70);
+              let map_key_71 = i_prot.read_string()?;
+              let map_val_72 = i_prot.read_string()?;
+              list_elem_70.insert(map_key_71, map_val_72);
             }
             i_prot.read_map_end()?;
-            val.push(list_elem_68);
+            val.push(list_elem_70);
           }
           i_prot.read_list_end()?;
           f_8 = Some(val);
@@ -3888,8 +4103,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_71 = i_prot.read_string()?;
-            val.push(list_elem_71);
+            let list_elem_73 = i_prot.read_string()?;
+            val.push(list_elem_73);
           }
           i_prot.read_list_end()?;
           f_9 = Some(val);
@@ -4069,8 +4284,8 @@ impl ServerProperties {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_72 = i_prot.read_string()?;
-            val.push(list_elem_72);
+            let list_elem_74 = i_prot.read_string()?;
+            val.push(list_elem_74);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -4319,8 +4534,8 @@ impl TSCreateSchemaTemplateReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_73 = i_prot.read_string()?;
-            val.push(list_elem_73);
+            let list_elem_75 = i_prot.read_string()?;
+            val.push(list_elem_75);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -4330,34 +4545,18 @@ impl TSCreateSchemaTemplateReq {
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_74: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_76: Vec<String> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_75 = i_prot.read_string()?;
-              list_elem_74.push(list_elem_75);
-            }
-            i_prot.read_list_end()?;
-            val.push(list_elem_74);
-          }
-          i_prot.read_list_end()?;
-          f_4 = Some(val);
-        },
-        5 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_76: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
-            for _ in 0..list_ident.size {
-              let list_elem_77 = i_prot.read_i32()?;
+              let list_elem_77 = i_prot.read_string()?;
               list_elem_76.push(list_elem_77);
             }
             i_prot.read_list_end()?;
             val.push(list_elem_76);
           }
           i_prot.read_list_end()?;
-          f_5 = Some(val);
+          f_4 = Some(val);
         },
-        6 => {
+        5 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
@@ -4371,14 +4570,30 @@ impl TSCreateSchemaTemplateReq {
             val.push(list_elem_78);
           }
           i_prot.read_list_end()?;
+          f_5 = Some(val);
+        },
+        6 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_ident = i_prot.read_list_begin()?;
+            let mut list_elem_80: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+            for _ in 0..list_ident.size {
+              let list_elem_81 = i_prot.read_i32()?;
+              list_elem_80.push(list_elem_81);
+            }
+            i_prot.read_list_end()?;
+            val.push(list_elem_80);
+          }
+          i_prot.read_list_end()?;
           f_6 = Some(val);
         },
         7 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_80 = i_prot.read_i32()?;
-            val.push(list_elem_80);
+            let list_elem_82 = i_prot.read_i32()?;
+            val.push(list_elem_82);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
@@ -9269,8 +9484,8 @@ impl TSIServiceDeleteTimeseriesArgs {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_81 = i_prot.read_string()?;
-            val.push(list_elem_81);
+            let list_elem_83 = i_prot.read_string()?;
+            val.push(list_elem_83);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -9401,8 +9616,8 @@ impl TSIServiceDeleteStorageGroupsArgs {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_82 = i_prot.read_string()?;
-            val.push(list_elem_82);
+            let list_elem_84 = i_prot.read_string()?;
+            val.push(list_elem_84);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
