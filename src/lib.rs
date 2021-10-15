@@ -34,7 +34,8 @@
 //! use iotdb::{Config, Session};
 //!
 //! fn main() -> Result<(), Error> {
-//!     let config = Config::new("127.0.0.1", "6667")
+//!     let config = Config::new()
+//!         .endpoint("127.0.0.1", "6667")
 //!         .user("root")
 //!         .password("root")
 //!         .zone_id("UTC+8")
@@ -136,31 +137,35 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn new(host: &str, port: &str) -> Self {
-        let mut config = Config::default();
-        config.endpoint = format!("{}:{}", host, port);
-        config
+    pub fn new() -> Self {
+        Config::default()
     }
-    pub fn endpoint(&mut self, endpoint: &str) -> &mut Self {
-        self.endpoint = endpoint.to_string();
+
+    pub fn endpoint(&mut self, host: &str, port: &str) -> &mut Self {
+        self.endpoint = format!("{}:{}", host, port);
         self
     }
+
     pub fn user(&mut self, user: &str) -> &mut Self {
         self.user = user.to_string();
         self
     }
+
     pub fn password(&mut self, password: &str) -> &mut Self {
         self.password = password.to_string();
         self
     }
+
     pub fn timeout(&mut self, timeout: i64) -> &mut Self {
         self.timeout = timeout;
         self
     }
+
     pub fn zone_id(&mut self, zone_id: &str) -> &mut Self {
         self.zone_id = zone_id.to_string();
         self
     }
+
     pub fn fetch_size(&mut self, fetch_size: i32) -> &mut Self {
         self.fetch_size = fetch_size;
         self
@@ -169,26 +174,32 @@ impl Config {
         self.log_level = level.to_string();
         self
     }
+
     pub fn enable_rpc_compaction(&mut self) -> &mut Self {
         self.rpc_compaction = true;
         self
     }
+
     pub fn protocol_version(&mut self, protocol_version: TSProtocolVersion) -> &mut Self {
         self.protocol_version = protocol_version;
         self
     }
+
     pub fn enable_redirect_query(&mut self, enable_redirect_query: bool) -> &mut Self {
         self.enable_redirect_query = enable_redirect_query;
         self
     }
+
     pub fn config(&mut self, key: &str, value: &str) -> &mut Self {
         self.config_map.insert(key.to_string(), value.to_string());
         self
     }
+
     pub fn config_map(&mut self, map: &mut BTreeMap<String, String>) -> &mut Self {
         self.config_map.append(map);
         self
     }
+
     pub fn build(&self) -> Self {
         self.clone()
     }
