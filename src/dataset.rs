@@ -1,18 +1,15 @@
 use crate::common::DataType;
-use crate::rpc::TSQueryDataSet;
-use crate::rpc::{TSExecuteStatementResp, TSQueryNonAlignDataSet};
+use crate::rpc::TSExecuteStatementResp;
 use byteorder::{BigEndian, ReadBytesExt};
 use chrono::{DateTime, Local, TimeZone};
 use log::debug;
 use prettytable::Row as PrettyRow;
-use prettytable::{format, Cell, Table};
-use std::collections::{BTreeMap, HashMap};
-use std::io::{BufRead, Cursor, Read};
+use prettytable::{Cell, Table};
+use std::io::Cursor;
 
 #[derive(Clone, Debug)]
 pub struct Field {
     data_type: DataType,
-    field_name: String,
     pub bool_value: Option<bool>,
     pub int_value: Option<i32>,
     pub long_value: Option<i64>,
@@ -22,10 +19,9 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(data_type: DataType, field_name: String) -> Field {
+    pub fn new(data_type: DataType) -> Field {
         Self {
             data_type,
-            field_name,
             bool_value: None,
             int_value: None,
             long_value: None,
@@ -37,12 +33,12 @@ impl Field {
 }
 
 #[derive(Clone, Debug)]
-pub struct Row {
+pub struct ValueRow {
     timestamp: i64,
     fields: Vec<Field>,
 }
 
-impl Row {
+impl ValueRow {
     pub fn new() -> Self {
         Self {
             timestamp: 0,
@@ -50,14 +46,35 @@ impl Row {
         }
     }
 
-    pub fn timestamp(&mut self, timestamp: i64) -> &mut Row {
+    pub fn timestamp(&mut self, timestamp: i64) -> &mut ValueRow {
         self.timestamp = timestamp;
         self
     }
 
-    pub fn add_field(&mut self, field: Field) -> &mut Row {
+    pub fn add_field(&mut self, field: Field) -> &mut ValueRow {
         self.fields.push(field);
         self
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct RecordBatch {
+    columns: Vec<String>,
+    values: Vec<ValueRow>,
+    is_empty: bool,
+}
+
+impl RecordBatch {
+    fn new(columns: Vec<String>, values: Vec<ValueRow>) -> Self {
+        let mut is_empty = true;
+        if !columns.is_empty() && !values.is_empty() {
+            is_empty = false;
+        }
+        Self {
+            columns,
+            values,
+            is_empty,
+        }
     }
 }
 
@@ -67,7 +84,7 @@ pub struct DataSet {
     session_id: i64,
     fetch_size: i32,
     query_id: i64,
-    rows: Vec<Row>,
+    record_batch: RecordBatch,
     ignore_time_stamp: Option<bool>,
 }
 
@@ -92,14 +109,14 @@ impl DataSet {
             }
         };
 
-        fn resp_to_rows(resp: TSExecuteStatementResp, data_types: Vec<DataType>) -> Vec<Row> {
+        fn resp_to_rows(resp: TSExecuteStatementResp, data_types: Vec<DataType>) -> RecordBatch {
             const FLAG: i32 = 0x80;
-            let mut rows: Vec<Row> = Vec::new();
-            let query_data_set = resp.query_data_set.clone().unwrap();
-            let columns = resp.columns.clone().unwrap();
-            let bitmap_buffer = query_data_set.bitmap_list.clone();
-            let mut value_list = query_data_set.value_list.clone();
+            let query_data_set = resp.query_data_set.unwrap();
+            let columns = resp.columns.unwrap();
+            let bitmap_buffer = query_data_set.bitmap_list;
+            let mut value_list = query_data_set.value_list;
 
+            let mut values: Vec<ValueRow> = Vec::new();
             let mut row_num = 0;
             loop {
                 let sum_len: usize = value_list.iter().map(|value| value.len()).sum();
@@ -108,11 +125,11 @@ impl DataSet {
                 }
 
                 // construct time field
-                let mut row: Row = Row::new();
+                let mut value_row: ValueRow = ValueRow::new();
                 let mut time = query_data_set.time.clone();
                 if !time.is_empty() {
                     let mut time_buffer = Cursor::new(time.drain(..8).collect::<Vec<u8>>());
-                    row.timestamp(time_buffer.read_i64::<BigEndian>().unwrap());
+                    value_row.timestamp(time_buffer.read_i64::<BigEndian>().unwrap());
                 }
 
                 // construct value field
@@ -120,7 +137,7 @@ impl DataSet {
                     // add a new field
                     let column_name = columns[col_index].clone();
                     let data_type = data_types[col_index].clone();
-                    let mut field = Field::new(data_type, column_name.clone());
+                    let mut field = Field::new(data_type);
 
                     // reset column name index
                     let col_index = match resp.column_name_index_map.clone() {
@@ -178,12 +195,13 @@ impl DataSet {
                             }
                         }
                     }
-                    row.add_field(field);
+                    value_row.add_field(field);
                 }
                 row_num = row_num + 1;
-                rows.push(row);
+                values.push(value_row);
             }
-            rows
+
+            RecordBatch::new(columns, values)
         }
 
         Self {
@@ -191,72 +209,73 @@ impl DataSet {
             session_id,
             fetch_size,
             query_id: resp.query_id.clone().unwrap(),
-            rows: resp_to_rows(resp.clone(), data_types),
+            record_batch: resp_to_rows(resp.clone(), data_types),
             ignore_time_stamp: resp.ignore_time_stamp.clone(),
         }
     }
 
     pub fn show(&mut self) {
-        debug!("{:?}", self);
+        let mut batch = self.record_batch.clone();
+        debug!("{:?}", &batch);
+
         let mut table: Table = Table::new();
-        if self.rows.clone().is_empty() {
-            table = table!([self.statement], ["null"]);
+        if batch.is_empty {
+            table = table!([format!("SQL: {}", self.statement)], ["Result is empty"]);
         } else {
-            let mut col_cells: Vec<Cell> = Vec::new();
-            self.rows.clone().iter().for_each(|ds_row| {
+            let ignore_time_stamp = self.ignore_time_stamp.unwrap_or(false);
+
+            // add col name row
+            if !ignore_time_stamp {
+                batch.columns.insert(0, "Time".to_string());
+            }
+            let mut col_name_cells: Vec<Cell> = Vec::new();
+            batch
+                .columns
+                .iter()
+                .for_each(|col_name| col_name_cells.push(cell!(col_name)));
+            table.set_titles(PrettyRow::new(col_name_cells));
+
+            // add value rows
+            batch.values.iter().for_each(|row| {
                 let mut value_cells: Vec<Cell> = Vec::new();
-                match self.ignore_time_stamp {
-                    None => {
-                        col_cells.push(cell!("Time"));
-                        let dt: DateTime<Local> = Local.timestamp_millis(ds_row.timestamp.clone());
-                        value_cells.push(cell!(dt.to_string()));
-                    }
-                    Some(ignore_time_stamp) => {
-                        if !ignore_time_stamp {
-                            col_cells.push(cell!("Time"));
-                            let dt: DateTime<Local> =
-                                Local.timestamp_millis(ds_row.timestamp.clone());
-                            value_cells.push(cell!(dt.to_string()));
-                        }
-                    }
+                if !ignore_time_stamp {
+                    let dt: DateTime<Local> = Local.timestamp_millis(row.timestamp.clone());
+                    value_cells.push(cell!(dt.to_string()));
                 }
 
-                ds_row.fields.iter().for_each(|field| {
-                    col_cells.push(cell!(field.field_name.clone()));
-                    match field.data_type {
-                        DataType::BOOLEAN => match field.bool_value {
+                row.fields.iter().for_each(|field| match field.data_type {
+                    DataType::BOOLEAN => match field.bool_value {
+                        None => value_cells.push(cell!("null")),
+                        Some(bool_value) => value_cells.push(cell!(bool_value)),
+                    },
+                    DataType::INT32 => match field.int_value {
+                        None => value_cells.push(cell!("null")),
+                        Some(int_value) => value_cells.push(cell!(int_value)),
+                    },
+                    DataType::INT64 => match field.long_value {
+                        None => value_cells.push(cell!("null")),
+                        Some(long_value) => value_cells.push(cell!(long_value)),
+                    },
+                    DataType::FLOAT => match field.float_value {
+                        None => value_cells.push(cell!("null")),
+                        Some(float_value) => value_cells.push(cell!(float_value)),
+                    },
+                    DataType::DOUBLE => match field.double_value {
+                        None => value_cells.push(cell!("null")),
+                        Some(double_value) => value_cells.push(cell!(double_value)),
+                    },
+                    DataType::TEXT => {
+                        match field.clone().binary_value {
                             None => value_cells.push(cell!("null")),
-                            Some(bool_value) => value_cells.push(cell!(bool_value)),
-                        },
-                        DataType::INT32 => match field.int_value {
-                            None => value_cells.push(cell!("null")),
-                            Some(int_value) => value_cells.push(cell!(int_value)),
-                        },
-                        DataType::INT64 => match field.long_value {
-                            None => value_cells.push(cell!("null")),
-                            Some(long_value) => value_cells.push(cell!(long_value)),
-                        },
-                        DataType::FLOAT => match field.float_value {
-                            None => value_cells.push(cell!("null")),
-                            Some(float_value) => value_cells.push(cell!(float_value)),
-                        },
-                        DataType::DOUBLE => match field.double_value {
-                            None => value_cells.push(cell!("null")),
-                            Some(double_value) => value_cells.push(cell!(double_value)),
-                        },
-                        DataType::TEXT => {
-                            match field.clone().binary_value {
-                                None => value_cells.push(cell!("null")),
-                                Some(binary) => {
-                                    value_cells.push(cell!(String::from_utf8(binary).unwrap()))
-                                }
-                            };
-                        }
+                            Some(binary) => {
+                                value_cells.push(cell!(String::from_utf8(binary).unwrap()))
+                            }
+                        };
                     }
                 });
+
                 table.add_row(PrettyRow::new(value_cells));
-            });
-            table.insert_row(0, PrettyRow::new(col_cells));
+            })
         }
         table.printstd();
     }

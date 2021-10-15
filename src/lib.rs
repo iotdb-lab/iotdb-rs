@@ -90,7 +90,7 @@ use thrift::protocol::{
     TInputProtocol, TOutputProtocol,
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
-use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind, TransportErrorKind};
+use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind};
 
 #[macro_use]
 extern crate prettytable;
@@ -1011,9 +1011,6 @@ impl Session {
             Err(error) => Err(error),
         }
     }
-
-    /// TODO
-    fn value_to_bytes() {}
 
     /// Set time zone
     pub fn set_time_zone(&mut self, time_zone: &str) -> Result<(), Error> {
