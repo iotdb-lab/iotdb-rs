@@ -1,4 +1,4 @@
-//! ![Logo](https://github.com/francis-du/iotdb-rs/blob/main/iotdb-rs.png)
+//! ![Logo](https://raw.githubusercontent.com/francis-du/iotdb-rs/main/iotdb-rs.png)
 //!
 //! [![Crates.io](https://img.shields.io/crates/v/iotdb?style=flat-square&color=%23E5531A)](https://crates.io/crates/iotdb)
 //! [![Api Docs](https://img.shields.io/badge/Api-Doc-a94064?style=flat-square&color=%23E5531A)](https://docs.rs/iotdb)
