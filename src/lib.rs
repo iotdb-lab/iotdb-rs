@@ -39,7 +39,6 @@
 //!         .user("root")
 //!         .password("root")
 //!         .zone_id("UTC+8")
-//!         // .log_level("debug")
 //!         .build();
 //!
 //! // open session
@@ -1058,7 +1057,7 @@ impl Session {
         status.code == SUCCESS_CODE
     }
 
-    fn check_sorted(timestamps: Vec<i64>) {
+    fn check_sorted(_timestamps: Vec<i64>) {
         todo!()
     }
 
