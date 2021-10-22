@@ -109,109 +109,101 @@ impl DataSet {
             }
         };
 
-        fn resp_to_rows(resp: TSExecuteStatementResp, data_types: Vec<DataType>) -> RecordBatch {
-            const FLAG: i32 = 0x80;
-            let query_data_set = resp.query_data_set.unwrap();
-            let columns = resp.columns.unwrap();
-            let bitmap_buffer = query_data_set.bitmap_list;
-            let mut value_list = query_data_set.value_list;
-
-            let mut values: Vec<ValueRow> = Vec::new();
-            let mut row_num = 0;
-            loop {
-                let sum_len: usize = value_list.iter().map(|value| value.len()).sum();
-                if sum_len == 0 {
-                    break;
-                }
-
-                // construct time field
-                let mut value_row: ValueRow = ValueRow::new();
-                let mut time = query_data_set.time.clone();
-                if !time.is_empty() {
-                    let mut time_buffer = Cursor::new(time.drain(..8).collect::<Vec<u8>>());
-                    value_row.timestamp(time_buffer.read_i64::<BigEndian>().unwrap());
-                }
-
-                // construct value field
-                for col_index in 0..columns.len() {
-                    // add a new field
-                    let column_name = columns[col_index].clone();
-                    let data_type = data_types[col_index].clone();
-                    let mut field = Field::new(data_type);
-
-                    // reset column name index
-                    let col_index = match resp.column_name_index_map.clone() {
-                        None => col_index,
-                        Some(column_name_index_map) => column_name_index_map
-                            .get(column_name.as_str())
-                            .unwrap_or(&(col_index as i32))
-                            .clone()
-                            as usize,
-                    };
-
-                    // is null value
-                    let bitmap = bitmap_buffer[col_index][0] as i32;
-                    let is_null = ((FLAG >> (row_num % 8)) & (bitmap & 0xFF)) == 0;
-
-                    if !is_null {
-                        match data_type {
-                            DataType::BOOLEAN => {
-                                field.bool_value = Some(value_list[col_index][0].eq(&1));
-                                value_list[col_index].remove(0);
-                            }
-                            DataType::INT32 => {
-                                let mut buffer = Cursor::new(
-                                    value_list[col_index].drain(..4).collect::<Vec<u8>>(),
-                                );
-                                field.int_value = Some(buffer.read_i32::<BigEndian>().unwrap());
-                            }
-                            DataType::INT64 => {
-                                let mut buffer = Cursor::new(
-                                    value_list[col_index].drain(..8).collect::<Vec<u8>>(),
-                                );
-                                field.long_value = Some(buffer.read_i64::<BigEndian>().unwrap());
-                            }
-                            DataType::FLOAT => {
-                                let mut buffer = Cursor::new(
-                                    value_list[col_index].drain(..4).collect::<Vec<u8>>(),
-                                );
-                                field.float_value = Some(buffer.read_f32::<BigEndian>().unwrap());
-                            }
-                            DataType::DOUBLE => {
-                                let mut buffer = Cursor::new(
-                                    value_list[col_index].drain(..8).collect::<Vec<u8>>(),
-                                );
-                                field.double_value = Some(buffer.read_f64::<BigEndian>().unwrap());
-                            }
-                            DataType::TEXT => {
-                                let mut length_buffer = Cursor::new(
-                                    value_list[col_index].drain(..4).collect::<Vec<u8>>(),
-                                );
-                                let length =
-                                    length_buffer.read_i32::<BigEndian>().unwrap() as usize;
-                                let binary =
-                                    value_list[col_index].drain(..length).collect::<Vec<u8>>();
-                                field.binary_value = Some(binary);
-                            }
-                        }
-                    }
-                    value_row.add_field(field);
-                }
-                row_num = row_num + 1;
-                values.push(value_row);
-            }
-
-            RecordBatch::new(columns, values)
-        }
-
         Self {
             statement,
             session_id,
             fetch_size,
             query_id: resp.query_id.clone().unwrap(),
-            record_batch: resp_to_rows(resp.clone(), data_types),
+            record_batch: Self::resp_to_rows(resp.clone(), data_types),
             ignore_time_stamp: resp.ignore_time_stamp.clone(),
         }
+    }
+
+    fn resp_to_rows(resp: TSExecuteStatementResp, data_types: Vec<DataType>) -> RecordBatch {
+        const FLAG: i32 = 0x80;
+        let query_data_set = resp.query_data_set.unwrap();
+        let columns = resp.columns.unwrap();
+        let bitmap_buffer = query_data_set.bitmap_list;
+        let mut value_list = query_data_set.value_list;
+
+        let mut values: Vec<ValueRow> = Vec::new();
+        let mut row_num = 0;
+        loop {
+            let sum_len: usize = value_list.iter().map(|value| value.len()).sum();
+            if sum_len == 0 {
+                break;
+            }
+
+            // construct time field
+            let mut value_row: ValueRow = ValueRow::new();
+            let mut time = query_data_set.time.clone();
+            if !time.is_empty() {
+                let mut time_buffer = Cursor::new(time.drain(..8).collect::<Vec<u8>>());
+                value_row.timestamp(time_buffer.read_i64::<BigEndian>().unwrap());
+            }
+
+            // construct value field
+            for col_index in 0..columns.len() {
+                // add a new field
+                let column_name = columns[col_index].clone();
+                let data_type = data_types[col_index].clone();
+                let mut field = Field::new(data_type);
+
+                // reset column name index
+                let col_index = match resp.column_name_index_map.clone() {
+                    None => col_index,
+                    Some(column_name_index_map) => column_name_index_map
+                        .get(column_name.as_str())
+                        .unwrap_or(&(col_index as i32))
+                        .clone() as usize,
+                };
+
+                // is null value
+                let bitmap = bitmap_buffer[col_index][0] as i32;
+                let is_null = ((FLAG >> (row_num % 8)) & (bitmap & 0xFF)) == 0;
+
+                if !is_null {
+                    match data_type {
+                        DataType::BOOLEAN => {
+                            field.bool_value = Some(value_list[col_index][0].eq(&1));
+                            value_list[col_index].remove(0);
+                        }
+                        DataType::INT32 => {
+                            let mut buffer =
+                                Cursor::new(value_list[col_index].drain(..4).collect::<Vec<u8>>());
+                            field.int_value = Some(buffer.read_i32::<BigEndian>().unwrap());
+                        }
+                        DataType::INT64 => {
+                            let mut buffer =
+                                Cursor::new(value_list[col_index].drain(..8).collect::<Vec<u8>>());
+                            field.long_value = Some(buffer.read_i64::<BigEndian>().unwrap());
+                        }
+                        DataType::FLOAT => {
+                            let mut buffer =
+                                Cursor::new(value_list[col_index].drain(..4).collect::<Vec<u8>>());
+                            field.float_value = Some(buffer.read_f32::<BigEndian>().unwrap());
+                        }
+                        DataType::DOUBLE => {
+                            let mut buffer =
+                                Cursor::new(value_list[col_index].drain(..8).collect::<Vec<u8>>());
+                            field.double_value = Some(buffer.read_f64::<BigEndian>().unwrap());
+                        }
+                        DataType::TEXT => {
+                            let mut length_buffer =
+                                Cursor::new(value_list[col_index].drain(..4).collect::<Vec<u8>>());
+                            let length = length_buffer.read_i32::<BigEndian>().unwrap() as usize;
+                            let binary = value_list[col_index].drain(..length).collect::<Vec<u8>>();
+                            field.binary_value = Some(binary);
+                        }
+                    }
+                }
+                value_row.add_field(field);
+            }
+            row_num = row_num + 1;
+            values.push(value_row);
+        }
+
+        RecordBatch::new(columns, values)
     }
 
     pub fn show(&mut self) {

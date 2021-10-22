@@ -69,8 +69,11 @@
 //! }
 //! ```
 pub mod common;
-mod dataset;
+pub mod dataset;
+pub mod error;
 pub mod rpc;
+
+pub use thrift;
 
 use crate::common::{Compressor, DataType, Encoding, Logger};
 use crate::dataset::DataSet;
@@ -85,6 +88,7 @@ use chrono::{Local, Utc};
 use log::{debug, error};
 use mimalloc::MiMalloc;
 use std::collections::BTreeMap;
+use std::env;
 use thrift::protocol::{
     TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
     TInputProtocol, TOutputProtocol,
@@ -101,6 +105,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
 const SUCCESS_CODE: i32 = 200;
+const LOG_LEVER_KEY: &str = "IOTDB_LOG_LEVER";
 
 /// IotDB Config
 #[derive(Clone, Debug)]
@@ -127,7 +132,7 @@ impl Default for Config {
             timeout: 3000,
             zone_id: format!("{}{}", Utc::now().offset(), Local::now().offset()),
             fetch_size: 1024,
-            log_level: "info".to_string(),
+            log_level: env::var(LOG_LEVER_KEY).unwrap_or("info".to_string()),
             rpc_compaction: false,
             protocol_version: TSProtocolVersion::IOTDB_SERVICE_PROTOCOL_V3,
             enable_redirect_query: false,
@@ -138,7 +143,9 @@ impl Default for Config {
 
 impl Config {
     pub fn new() -> Self {
-        Config::default()
+        let default = Config::default();
+        debug!("{:?}", default);
+        default
     }
 
     pub fn endpoint(&mut self, host: &str, port: &str) -> &mut Self {
@@ -190,12 +197,12 @@ impl Config {
         self
     }
 
-    pub fn config(&mut self, key: &str, value: &str) -> &mut Self {
+    pub fn set(&mut self, key: &str, value: &str) -> &mut Self {
         self.config_map.insert(key.to_string(), value.to_string());
         self
     }
 
-    pub fn config_map(&mut self, map: &mut BTreeMap<String, String>) -> &mut Self {
+    pub fn set_map(&mut self, map: &mut BTreeMap<String, String>) -> &mut Self {
         self.config_map.append(map);
         self
     }

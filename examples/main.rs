@@ -9,7 +9,6 @@ fn main() -> Result<(), Error> {
         .user("root")
         .password("root")
         .zone_id("UTC+8")
-        // .log_level("debug")
         .build();
 
     // open session
