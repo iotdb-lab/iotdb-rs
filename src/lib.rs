@@ -89,6 +89,7 @@ use log::{debug, error};
 use mimalloc::MiMalloc;
 use std::collections::BTreeMap;
 use std::env;
+use std::net::TcpStream;
 use thrift::protocol::{
     TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
     TInputProtocol, TOutputProtocol,
@@ -107,26 +108,54 @@ type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputP
 const SUCCESS_CODE: i32 = 200;
 const LOG_LEVER_KEY: &str = "IOTDB_LOG_LEVER";
 
+#[derive(Clone, Debug)]
+pub struct Endpoint {
+    pub host: String,
+    pub port: String,
+}
+
+impl Default for Endpoint {
+    fn default() -> Self {
+        Self {
+            host: String::from("127.0.0.1"),
+            port: String::from("6667"),
+        }
+    }
+}
+
+impl Endpoint {
+    pub fn new(host: &str, port: &str) -> Self {
+        Self {
+            host: String::from(host),
+            port: String::from(port),
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
+}
+
 /// IotDB Config
 #[derive(Clone, Debug)]
 pub struct Config {
-    user: String,
-    password: String,
-    zone_id: String,
-    timeout: i64,
-    fetch_size: i32,
-    endpoint: String,
-    log_level: String,
-    rpc_compaction: bool,
-    protocol_version: TSProtocolVersion,
-    enable_redirect_query: bool,
-    config_map: BTreeMap<String, String>,
+    pub user: String,
+    pub password: String,
+    pub zone_id: String,
+    pub timeout: i64,
+    pub fetch_size: i32,
+    pub endpoint: Endpoint,
+    pub log_level: String,
+    pub rpc_compaction: bool,
+    pub protocol_version: TSProtocolVersion,
+    pub enable_redirect_query: bool,
+    pub config_map: BTreeMap<String, String>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            endpoint: "127.0.0.1:6667".to_string(),
+            endpoint: Endpoint::default(),
             user: "root".to_string(),
             password: "root".to_string(),
             timeout: 3000,
@@ -149,7 +178,7 @@ impl Config {
     }
 
     pub fn endpoint(&mut self, host: &str, port: &str) -> &mut Self {
-        self.endpoint = format!("{}:{}", host, port);
+        self.endpoint = Endpoint::new(host, port);
         self
     }
 
@@ -225,15 +254,23 @@ impl Session {
         Logger::new(config.log_level.as_str(), None).init().unwrap();
         debug!("{:?}", &config);
 
-        let mut channel = TTcpChannel::new();
-        match channel.open(config.endpoint.clone().as_str()) {
-            Ok(_) => debug!("Open a channel, endpoint: {}", config.endpoint),
-            Err(error) => debug!(
-                "Connect to endpoint: {} failed, reason: {}",
-                config.endpoint, error
-            ),
-        }
-
+        let stream: TcpStream = match TcpStream::connect(config.endpoint.to_string()) {
+            Ok(tcp_stream) => {
+                debug!("TcpStream connect to {:?}", config.endpoint);
+                tcp_stream
+            }
+            Err(error) => {
+                error!(
+                    "TcpStream connect to {:?} failed, reason: {}",
+                    config.endpoint, error
+                );
+                panic!(
+                    "TcpStream connect to {:?} failed, reason: {}",
+                    config.endpoint, error
+                );
+            }
+        };
+        let channel = TTcpChannel::with_stream(stream);
         let (channel_in, channel_out) = channel.split().unwrap();
         let (transport_in, transport_out) = (
             TFramedReadTransport::new(channel_in),
@@ -277,7 +314,7 @@ impl Session {
                     if self.config.protocol_version.clone() != resp.server_protocol_version {
                         self.is_close = true;
                         let msg = format!(
-                            "Protocol version is different, client is {:?}, server is {:?}",
+                            "Protocol version is different,client is {:?},server is {:?}",
                             self.config.protocol_version.clone(),
                             resp.server_protocol_version
                         );
@@ -291,7 +328,7 @@ impl Session {
                         self.session_id = resp.session_id.unwrap();
                         self.statement_id = self.client.request_statement_id(self.session_id)?;
                         debug!(
-                            "Open a session, session id: {}, statement id: {} ",
+                            "Open a session,session id: {},statement id: {} ",
                             self.session_id.clone(),
                             self.statement_id.clone()
                         );
@@ -334,7 +371,7 @@ impl Session {
                         Ok(())
                     } else {
                         error!(
-                            "Session closed failed, code: {}, reason: {}",
+                            "Session closed failed,code: {},reason: {}",
                             status.code.clone(),
                             status.message.clone().unwrap_or("None".to_string())
                         );
