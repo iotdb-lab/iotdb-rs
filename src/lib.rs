@@ -69,7 +69,6 @@
 //! ```
 pub mod common;
 pub mod dataset;
-pub mod error;
 pub mod rpc;
 pub mod table;
 
@@ -121,7 +120,7 @@ impl FromStr for Endpoint {
     fn from_str(str: &str) -> Result<Self, Self::Err> {
         let host_port: Vec<&str> = str.split(":").collect();
         if host_port.is_empty() || host_port.len() != 2 {
-            Err(error!("Endpoint format error, endpoint: {}", str))
+            panic!("Endpoint format error, endpoint: '{}'", str)
         } else {
             Ok(Self {
                 host: String::from(host_port[0]),
