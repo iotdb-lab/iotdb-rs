@@ -11,6 +11,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square&color=%23E5531A)](https://github.com/francis-du/iotdb-rs/blob/main/LICENSE)
 [![Rust Build](https://img.shields.io/github/workflow/status/francis-du/iotdb-rs/cargo-test?label=build&style=flat-square)](https://github.com/francis-du/iotdb-rs/actions?query=workflow%3Acargo-test)
 [![Crates Publish](https://img.shields.io/github/workflow/status/francis-du/iotdb-rs/cargo-publish?label=publish&style=flat-square)](https://github.com/francis-du/iotdb-rs/actions?query=workflow%3Acargo-publish)
+
 </div>
 
 ---
@@ -45,12 +46,14 @@ fn main() -> Result<(), Error> {
         .user("root")
         .password("root")
         .zone_id("UTC+8")
+        // .debug(true)
         .build();
 
     // open session
     let mut session = Session::new(config).open()?;
-    session.sql("SHOW STORAGE GROUP")?.show();
-    // session.set_storage_group("root.ln")?;
+    println!("time_zone: {}", session.time_zone()?);
+    session.delete_storage_group("root.ln")?;
+    session.set_storage_group("root.ln")?;
     session.create_time_series(
         "root.ln.wf01.wt01.temperature",
         DataType::INT64,
@@ -65,13 +68,33 @@ fn main() -> Result<(), Error> {
         Compressor::default(),
     )?;
 
-    session.sql("SHOW TIMESERIES root.ln")?.show();
+    session.sql("INSERT INTO root.ln.wf01.wt01(timestamp,status) values(100,true)")?;
+    session.sql("INSERT INTO root.ln.wf01.wt01(timestamp,status) values(200,false)")?;
+    session.sql(
+        "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values(300,false,18.36)",
+    )?;
+    session.sql(
+        "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values(400,true,32.23)",
+    )?;
     session.sql("select * from root.ln")?.show();
 
     session.close()?;
 
     Ok(())
 }
+
+time_zone: UTC+08:00
++--------------------------------+-------------------------------+--------------------------+
+| Time                           | root.ln.wf01.wt01.temperature | root.ln.wf01.wt01.status |
++================================+===============================+==========================+
+| 1970-01-01 08:00:00.100 +08:00 | null                          | true                     |
++--------------------------------+-------------------------------+--------------------------+
+| 1970-01-01 08:00:00.100 +08:00 | null                          | false                    |
++--------------------------------+-------------------------------+--------------------------+
+| 1970-01-01 08:00:00.100 +08:00 | 18.36                         | false                    |
++--------------------------------+-------------------------------+--------------------------+
+| 1970-01-01 08:00:00.100 +08:00 | 32.23                         | true                     |
++--------------------------------+-------------------------------+--------------------------+
 
 ```
 

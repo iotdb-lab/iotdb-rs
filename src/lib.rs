@@ -39,12 +39,14 @@
 //!         .user("root")
 //!         .password("root")
 //!         .zone_id("UTC+8")
+//!         // .debug(true)
 //!         .build();
 //!
-//! // open session
+//!     // open session
 //!     let mut session = Session::new(config).open()?;
-//!     session.sql("SHOW STORAGE GROUP")?.show();
-//!     // session.set_storage_group("root.ln")?;
+//!     println!("time_zone: {}", session.time_zone()?);
+//!     session.delete_storage_group("root.ln")?;
+//!     session.set_storage_group("root.ln")?;
 //!     session.create_time_series(
 //!         "root.ln.wf01.wt01.temperature",
 //!         DataType::INT64,
@@ -59,8 +61,15 @@
 //!         Compressor::default(),
 //!     )?;
 //!
-//!    session.sql("SHOW TIMESERIES root.ln")?.show();
-//!    session.sql("select * from root.ln")?.show();
+//!     session.sql("INSERT INTO root.ln.wf01.wt01(timestamp,status) values(100,true)")?;
+//!     session.sql("INSERT INTO root.ln.wf01.wt01(timestamp,status) values(200,false)")?;
+//!     session.sql(
+//!         "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values(300,false,18.36)",
+//!     )?;
+//!     session.sql(
+//!         "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values(400,true,32.23)",
+//!     )?;
+//!     session.sql("select * from root.ln")?.show();
 //!
 //!     session.close()?;
 //!
@@ -911,50 +920,8 @@ impl Session {
     /// TODO
     pub fn gen_insert_tablets_req() {}
 
-    pub fn exec_insert(&mut self, statement: &str) -> Result<DataSet, Error> {
-        self.exec(statement)
-    }
-
     pub fn sql(&mut self, sql: &str) -> Result<DataSet, Error> {
-        self.exec_query(sql)
-    }
-
-    /// execute query sql statement and return a DataSet
-    fn exec_query(&mut self, query: &str) -> Result<DataSet, Error> {
-        debug!("Exec query \"{}\"", &query);
-        let req = TSExecuteStatementReq::new(
-            self.session_id,
-            query.to_string(),
-            self.statement_id,
-            self.config.fetch_size.clone(),
-            self.config.timeout.clone(),
-            self.config.enable_redirect_query.clone(),
-            false,
-        );
-
-        match self.client.execute_query_statement(req) {
-            Ok(resp) => {
-                if self.is_success(&resp.status) {
-                    Ok(DataSet::new(
-                        query.to_string(),
-                        self.session_id,
-                        self.config.fetch_size.clone(),
-                        resp,
-                    ))
-                } else {
-                    error!(
-                        "Exec query failed, code: {}, reason: {}",
-                        resp.status.code.clone(),
-                        resp.status.clone().message.unwrap_or("None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap(),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
-        }
+        self.exec(sql)
     }
 
     /// execute query sql statement and return a DataSet
@@ -1002,6 +969,44 @@ impl Session {
                 }
             }
             Err(error) => error!("{}", error),
+        }
+    }
+
+    /// execute query sql statement and return a DataSet
+    pub fn exec_query(&mut self, query: &str) -> Result<DataSet, Error> {
+        debug!("Exec query \"{}\"", &query);
+        let req = TSExecuteStatementReq::new(
+            self.session_id,
+            query.to_string(),
+            self.statement_id,
+            self.config.fetch_size.clone(),
+            self.config.timeout.clone(),
+            self.config.enable_redirect_query.clone(),
+            false,
+        );
+
+        match self.client.execute_query_statement(req) {
+            Ok(resp) => {
+                if self.is_success(&resp.status) {
+                    Ok(DataSet::new(
+                        query.to_string(),
+                        self.session_id,
+                        self.config.fetch_size.clone(),
+                        resp,
+                    ))
+                } else {
+                    error!(
+                        "Exec query failed, code: {}, reason: {}",
+                        resp.status.code.clone(),
+                        resp.status.clone().message.unwrap_or("None".to_string())
+                    );
+                    Err(thrift::new_application_error(
+                        ApplicationErrorKind::MissingResult,
+                        resp.status.message.unwrap(),
+                    ))
+                }
+            }
+            Err(error) => Err(error),
         }
     }
 

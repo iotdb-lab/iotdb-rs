@@ -64,16 +64,22 @@ pub struct RecordBatch {
     is_empty: bool,
 }
 
+impl Default for RecordBatch {
+    fn default() -> Self {
+        Self {
+            columns: vec![],
+            values: vec![],
+            is_empty: true,
+        }
+    }
+}
+
 impl RecordBatch {
     fn new(columns: Vec<String>, values: Vec<ValueRow>) -> Self {
-        let mut is_empty = true;
-        if !columns.is_empty() && !values.is_empty() {
-            is_empty = false;
-        }
         Self {
             columns,
             values,
-            is_empty,
+            is_empty: false,
         }
     }
 }
@@ -109,12 +115,18 @@ impl DataSet {
             }
         };
 
+        let record_batch = if resp.query_data_set.is_some() {
+            Self::resp_to_rows(resp.clone(), data_types)
+        } else {
+            RecordBatch::default()
+        };
+
         Self {
             statement,
             session_id,
             fetch_size,
             query_id: resp.query_id.clone().unwrap(),
-            record_batch: Self::resp_to_rows(resp.clone(), data_types),
+            record_batch,
             ignore_time_stamp: resp.ignore_time_stamp.clone(),
         }
     }
