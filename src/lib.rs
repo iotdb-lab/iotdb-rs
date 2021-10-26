@@ -71,6 +71,7 @@ pub mod common;
 pub mod dataset;
 pub mod error;
 pub mod rpc;
+pub mod table;
 
 pub use thrift;
 
