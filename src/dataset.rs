@@ -223,9 +223,7 @@ impl DataSet {
         debug!("{:?}", &batch);
 
         let mut table: Table = Table::new();
-        if batch.is_empty {
-            table = table!([format!("SQL: {}", self.statement)], ["Result is empty"]);
-        } else {
+        if !batch.is_empty {
             let ignore_time_stamp = self.ignore_time_stamp.unwrap_or(false);
 
             // add col name row
