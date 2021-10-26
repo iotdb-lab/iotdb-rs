@@ -279,6 +279,8 @@ impl DataSet {
                 table.add_row(PrettyRow::new(value_cells));
             })
         }
-        table.printstd();
+        if !table.is_empty() {
+            table.printstd();
+        }
     }
 }
