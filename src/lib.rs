@@ -90,6 +90,7 @@ use mimalloc::MiMalloc;
 use std::collections::BTreeMap;
 use std::env;
 use std::net::TcpStream;
+use std::str::FromStr;
 use thrift::protocol::{
     TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
     TInputProtocol, TOutputProtocol,
@@ -114,12 +115,25 @@ pub struct Endpoint {
     pub port: String,
 }
 
+impl FromStr for Endpoint {
+    type Err = ();
+
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let host_port: Vec<&str> = str.split(":").collect();
+        if host_port.is_empty() || host_port.len() != 2 {
+            Err(error!("Endpoint format error, endpoint: {}", str))
+        } else {
+            Ok(Self {
+                host: String::from(host_port[0]),
+                port: String::from(host_port[1]),
+            })
+        }
+    }
+}
+
 impl Default for Endpoint {
     fn default() -> Self {
-        Self {
-            host: String::from("127.0.0.1"),
-            port: String::from("6667"),
-        }
+        "127.0.0.1:6667".parse::<Self>().unwrap()
     }
 }
 
@@ -206,8 +220,16 @@ impl Config {
         self.fetch_size = fetch_size;
         self
     }
+
     pub fn log_level(&mut self, level: &str) -> &mut Self {
         self.log_level = level.to_string();
+        self
+    }
+
+    pub fn debug(&mut self, debug: bool) -> &mut Self {
+        if debug {
+            self.log_level = "debug".to_string();
+        }
         self
     }
 
