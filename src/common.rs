@@ -277,8 +277,8 @@ impl Logger {
             Some(path_buf) => fern::Dispatch::new()
                 .format(|out, message, record| {
                     out.finish(format_args!(
-                        "{}[{}][{}] {}",
-                        chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                        "[{}][{}][{}] {}",
+                        chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
                         record.target(),
                         record.level(),
                         message
@@ -289,21 +289,13 @@ impl Logger {
 
         let stdout_config = fern::Dispatch::new()
             .format(|out, message, record| {
-                if record.level() > log::LevelFilter::Info && record.target() == "cmd_program" {
-                    out.finish(format_args!(
-                        "---\nDEBUG: {}: {}\n---",
-                        chrono::Local::now().format("%H:%M:%S"),
-                        message
-                    ))
-                } else {
-                    out.finish(format_args!(
-                        "[{}][{}][{}] {}",
-                        chrono::Local::now().format("%H:%M"),
-                        record.target(),
-                        record.level(),
-                        message
-                    ))
-                }
+                out.finish(format_args!(
+                    "[{}][{}][{}] {}",
+                    chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                    record.target(),
+                    record.level(),
+                    message
+                ))
             })
             .chain(io::stdout());
 

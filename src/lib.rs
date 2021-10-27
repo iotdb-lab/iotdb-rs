@@ -963,8 +963,7 @@ impl Session {
         let req = TSExecuteBatchStatementReq::new(self.session_id, statements);
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
-                if self.is_success(&status) {
-                } else {
+                if !self.is_success(&status) {
                     error!("{}", status.message.clone().unwrap());
                 }
             }
