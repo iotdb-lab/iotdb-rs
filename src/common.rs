@@ -278,7 +278,7 @@ impl Logger {
                 .format(|out, message, record| {
                     out.finish(format_args!(
                         "[{}][{}][{}] {}",
-                        chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                        chrono::Local::now().format("%+"),
                         record.target(),
                         record.level(),
                         message
@@ -291,7 +291,7 @@ impl Logger {
             .format(|out, message, record| {
                 out.finish(format_args!(
                     "[{}][{}][{}] {}",
-                    chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                    chrono::Local::now().format("%+"),
                     record.target(),
                     record.level(),
                     message
