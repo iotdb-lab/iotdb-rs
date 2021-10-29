@@ -152,8 +152,10 @@ impl Endpoint {
             port: String::from(port),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl ToString for Endpoint {
+    fn to_string(&self) -> String {
         format!("{}:{}", self.host, self.port)
     }
 }
@@ -344,7 +346,7 @@ impl Session {
                     if self.config.protocol_version.clone() != resp.server_protocol_version {
                         self.is_close = true;
                         let msg = format!(
-                            "Protocol version is different,client is {:?},server is {:?}",
+                            "Protocol version is different, client is {:?}, server is {:?}",
                             self.config.protocol_version.clone(),
                             resp.server_protocol_version
                         );
@@ -358,7 +360,7 @@ impl Session {
                         self.session_id = resp.session_id.unwrap();
                         self.statement_id = self.client.request_statement_id(self.session_id)?;
                         debug!(
-                            "Open a session,session id: {},statement id: {} ",
+                            "Open a session,session id: {}, statement id: {} ",
                             self.session_id.clone(),
                             self.statement_id.clone()
                         );
@@ -401,7 +403,7 @@ impl Session {
                         Ok(())
                     } else {
                         error!(
-                            "Session closed failed,code: {},reason: {}",
+                            "Session closed failed, code: {}, reason: {}",
                             status.code.clone(),
                             status.message.clone().unwrap_or("None".to_string())
                         );
@@ -425,7 +427,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Set storage group {:?} message: {:?}",
+                        "Set storage group {:?}, message: {:?}",
                         storage_group,
                         status.message.unwrap()
                     );
@@ -457,7 +459,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Delete storage group(s) {:?} message: {:?}",
+                        "Delete storage group(s) {:?}, message: {:?}",
                         storage_groups.clone(),
                         status.message.unwrap()
                     );
@@ -503,7 +505,7 @@ impl Session {
                         Ok(status) => {
                             if self.is_success(&status) {
                                 debug!(
-                                    "Creat time series {:?} message: {:?}",
+                                    "Creat time series {:?}, message: {:?}",
                                     ts_path,
                                     status.message.unwrap()
                                 );
@@ -547,7 +549,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Creating multiple time series {:?} message: {:?}",
+                        "Creating multiple time series {:?}, message: {:?}",
                         ts_path_vec.clone(),
                         status.message.unwrap()
                     );
@@ -573,7 +575,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Deleting multiple time series {:?} message: {:?}",
+                        "Deleting multiple time series {:?}, message: {:?}",
                         path_vec.clone(),
                         status.message.unwrap()
                     );
@@ -667,7 +669,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Insert string records to device {:?} message: {:?}",
+                        "Insert string records to device {:?}, message: {:?}",
                         device_ids.clone(),
                         status.message.unwrap()
                     );
@@ -705,7 +707,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Insert one record to device {:?} message: {:?}",
+                        "Insert one record to device {:?}, message: {:?}",
                         device_id.clone(),
                         status.message.unwrap()
                     );
@@ -726,7 +728,7 @@ impl Session {
     /// request, this method should be used to test other time cost in client
     pub fn test_insert_record(
         &mut self,
-        prefix_path: String,
+        prefix_path: &str,
         timestamp: i64,
         measurements: Vec<String>,
         values: Vec<u8>,
@@ -734,7 +736,7 @@ impl Session {
     ) -> Result<(), Error> {
         let req = TSInsertRecordReq::new(
             self.session_id,
-            prefix_path.clone(),
+            prefix_path.to_string(),
             measurements,
             values,
             timestamp,
@@ -744,7 +746,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Testing! insert one record to prefix path {:?} message: {:?}",
+                        "Testing! insert one record to prefix path {:?}, message: {:?}",
                         prefix_path.clone(),
                         status.message.unwrap()
                     );
@@ -782,7 +784,7 @@ impl Session {
             Ok(status) => {
                 if self.is_success(&status) {
                     debug!(
-                        "Insert multiple records to prefix path {:?} message: {:?}",
+                        "Insert multiple records to prefix path {:?}, message: {:?}",
                         prefix_paths.clone(),
                         status.message.unwrap()
                     );
@@ -845,11 +847,9 @@ impl Session {
     ///                  3,  688.6,  True,  text3
     /// Notice: The tablet should not have empty cell
     ///         The tablet itself is sorted
-
-    // TODO
     pub fn insert_tablet(
         &mut self,
-        prefix_path: String,
+        prefix_path: &str,
         measurements: Vec<String>,
         values: Vec<u8>,
         timestamps: Vec<u8>,
@@ -859,7 +859,7 @@ impl Session {
     ) -> Result<TSStatus, Error> {
         let req = TSInsertTabletReq::new(
             self.session_id,
-            prefix_path,
+            prefix_path.to_string(),
             measurements,
             values,
             timestamps,
@@ -926,7 +926,7 @@ impl Session {
 
     /// execute query sql statement and return a DataSet
     fn exec(&mut self, statement: &str) -> Result<DataSet, Error> {
-        debug!("Exec statement \"{}\"", &statement);
+        debug!("Exec statement \"{}\"", statement);
         let req = TSExecuteStatementReq::new(
             self.session_id,
             statement.to_string(),
@@ -940,6 +940,11 @@ impl Session {
         match self.client.execute_statement(req) {
             Ok(resp) => {
                 if self.is_success(&resp.status) {
+                    debug!(
+                        "Execute statement {:?}, message: {:?}",
+                        statement,
+                        resp.status.clone().message.unwrap_or("None".to_string())
+                    );
                     Ok(DataSet::new(
                         statement.to_string(),
                         self.session_id,
@@ -960,10 +965,16 @@ impl Session {
 
     /// execute batch statement and return a DataSets
     pub fn exec_batch(&mut self, statements: Vec<String>) {
-        let req = TSExecuteBatchStatementReq::new(self.session_id, statements);
+        let req = TSExecuteBatchStatementReq::new(self.session_id, statements.clone());
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
                 if !self.is_success(&status) {
+                    debug!(
+                        "Execute statements {:?}, message: {:?}",
+                        statements,
+                        status.clone().message.unwrap_or("None".to_string())
+                    );
+                } else {
                     error!("{}", status.message.clone().unwrap());
                 }
             }
@@ -987,6 +998,11 @@ impl Session {
         match self.client.execute_query_statement(req) {
             Ok(resp) => {
                 if self.is_success(&resp.status) {
+                    debug!(
+                        "Execute query {:?}, message: {:?}",
+                        query,
+                        resp.status.clone().message.unwrap_or("None".to_string())
+                    );
                     Ok(DataSet::new(
                         query.to_string(),
                         self.session_id,
@@ -1024,6 +1040,11 @@ impl Session {
         match self.client.execute_update_statement(req) {
             Ok(resp) => {
                 if self.is_success(&resp.status) {
+                    debug!(
+                        "Execute update statement {:?}, message: {:?}",
+                        statement,
+                        resp.status.clone().message.unwrap_or("None".to_string())
+                    );
                     Ok(DataSet::new(
                         statement.to_string(),
                         self.session_id,
@@ -1118,10 +1139,6 @@ impl Session {
     /// Verify success status of operation
     fn is_success(&self, status: &TSStatus) -> bool {
         status.code == SUCCESS_CODE
-    }
-
-    fn check_sorted(_timestamps: Vec<i64>) {
-        todo!()
     }
 
     /// Cancel operation
