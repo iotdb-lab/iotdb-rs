@@ -22,7 +22,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! iotdb = "0.0.4"
+//! iotdb = "0.0.5"
 //! ```
 //!
 //! # Example
