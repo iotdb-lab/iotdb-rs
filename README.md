@@ -3,7 +3,7 @@
 ![logo](iotdb-rs.png)
 
 <h1>iotdb-rs</h1>
-<h3>(WIP) Apache IotDB Client written in Rust</h3>
+<h3>Apache IotDB Client written in Rust</h3>
 
 [![Crates.io](https://img.shields.io/crates/v/iotdb?style=flat-square&color=%23E5531A)](https://crates.io/crates/iotdb)
 [![Api Docs](https://img.shields.io/badge/Api-Doc-a94064?style=flat-square&color=%23E5531A)](https://docs.rs/iotdb)
