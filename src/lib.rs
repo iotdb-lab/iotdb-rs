@@ -79,7 +79,6 @@
 pub mod common;
 pub mod dataset;
 pub mod rpc;
-pub mod table;
 
 pub use thrift;
 
@@ -127,7 +126,7 @@ impl FromStr for Endpoint {
     type Err = ();
 
     fn from_str(str: &str) -> Result<Self, Self::Err> {
-        let host_port: Vec<&str> = str.split(":").collect();
+        let host_port: Vec<&str> = str.split(':').collect();
         if host_port.is_empty() || host_port.len() != 2 {
             panic!("Endpoint format error, endpoint: '{}'", str)
         } else {
@@ -185,7 +184,7 @@ impl Default for Config {
             timeout: 3000,
             zone_id: format!("{}{}", Utc::now().offset(), Local::now().offset()),
             fetch_size: 1024,
-            log_level: env::var(LOG_LEVER_KEY).unwrap_or("info".to_string()),
+            log_level: env::var(LOG_LEVER_KEY).unwrap_or_else(|_| "info".to_string()),
             rpc_compaction: false,
             protocol_version: TSProtocolVersion::IOTDB_SERVICE_PROTOCOL_V3,
             enable_redirect_query: false,
@@ -322,7 +321,7 @@ impl Session {
 
         Self {
             client: TSIServiceSyncClient::new(protocol_in, protocol_out),
-            config: config.clone(),
+            config,
             session_id: -1,
             statement_id: -1,
             is_close: true,
@@ -332,25 +331,25 @@ impl Session {
     // Open Session
     pub fn open(mut self) -> Result<Session, Error> {
         let open_req = TSOpenSessionReq::new(
-            self.config.protocol_version.clone(),
+            self.config.protocol_version,
             self.config.zone_id.clone(),
             self.config.user.clone(),
             self.config.password.clone(),
             self.config.config_map.clone(),
         );
 
-        match self.client.open_session(open_req.clone()) {
+        match self.client.open_session(open_req) {
             Ok(resp) => {
                 let status = resp.status;
                 if self.is_success(&status) {
-                    if self.config.protocol_version.clone() != resp.server_protocol_version {
+                    if self.config.protocol_version != resp.server_protocol_version {
                         self.is_close = true;
                         let msg = format!(
                             "Protocol version is different, client is {:?}, server is {:?}",
                             self.config.protocol_version.clone(),
                             resp.server_protocol_version
                         );
-                        error!("{}", msg.clone());
+                        error!("{}", msg);
                         Err(thrift::new_protocol_error(
                             ProtocolErrorKind::BadVersion,
                             msg,
@@ -370,7 +369,7 @@ impl Session {
                     error!("{}", status.message.clone().unwrap());
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -382,11 +381,11 @@ impl Session {
     }
 
     pub fn is_open(&self) -> bool {
-        !self.is_close.clone()
+        !self.is_close
     }
 
     pub fn is_close(&self) -> bool {
-        self.is_close.clone()
+        self.is_close
     }
 
     // Close Session
@@ -405,11 +404,11 @@ impl Session {
                         error!(
                             "Session closed failed, code: {}, reason: {}",
                             status.code.clone(),
-                            status.message.clone().unwrap_or("None".to_string())
+                            status.message.clone().unwrap_or_else(|| "None".to_string())
                         );
                         Err(thrift::new_application_error(
                             ApplicationErrorKind::MissingResult,
-                            status.message.clone().unwrap_or("None".to_string()),
+                            status.message.unwrap_or_else(|| "None".to_string()),
                         ))
                     }
                 }
@@ -429,14 +428,14 @@ impl Session {
                     debug!(
                         "Set storage group {:?}, message: {:?}",
                         storage_group,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -460,15 +459,15 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Delete storage group(s) {:?}, message: {:?}",
-                        storage_groups.clone(),
-                        status.message.unwrap()
+                        storage_groups,
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
                     error!("{}", status.message.clone().unwrap());
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -550,7 +549,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Creating multiple time series {:?}, message: {:?}",
-                        ts_path_vec.clone(),
+                        ts_path_vec,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -576,7 +575,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Deleting multiple time series {:?}, message: {:?}",
-                        path_vec.clone(),
+                        path_vec,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -600,9 +599,9 @@ impl Session {
             self.session_id,
             statement,
             self.statement_id,
-            config.fetch_size.clone(),
-            config.timeout.clone(),
-            config.enable_redirect_query.clone(),
+            config.fetch_size,
+            config.timeout,
+            config.enable_redirect_query,
             false,
         );
 
@@ -632,7 +631,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Delete data from {:?}, message: {:?}",
-                        path_vec.clone(),
+                        path_vec,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -670,7 +669,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Insert string records to device {:?}, message: {:?}",
-                        device_ids.clone(),
+                        device_ids,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -708,7 +707,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Insert one record to device {:?}, message: {:?}",
-                        device_id.clone(),
+                        device_id,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -747,7 +746,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Testing! insert one record to prefix path {:?}, message: {:?}",
-                        prefix_path.clone(),
+                        prefix_path,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -785,7 +784,7 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Insert multiple records to prefix path {:?}, message: {:?}",
-                        prefix_paths.clone(),
+                        prefix_paths,
                         status.message.unwrap()
                     );
                     Ok(())
@@ -847,6 +846,8 @@ impl Session {
     ///                  3,  688.6,  True,  text3
     /// Notice: The tablet should not have empty cell
     ///         The tablet itself is sorted
+    /// TODO
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_tablet(
         &mut self,
         prefix_path: &str,
@@ -872,6 +873,7 @@ impl Session {
 
     /// insert multiple tablets, tablets are independent to each other
     /// TODO
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_tablets(
         &mut self,
         prefix_paths: Vec<String>,
@@ -881,7 +883,7 @@ impl Session {
         types_list: Vec<Vec<i32>>,
         size_list: Vec<i32>,
         is_aligned: bool,
-    ) -> thrift::Result<TSStatus> {
+    ) -> Result<TSStatus, Error> {
         let req = TSInsertTabletsReq::new(
             self.session_id,
             prefix_paths,
@@ -930,10 +932,10 @@ impl Session {
         let req = TSExecuteStatementReq::new(
             self.session_id,
             statement.to_string(),
-            self.statement_id.clone(),
-            self.config.fetch_size.clone(),
-            self.config.timeout.clone(),
-            self.config.enable_redirect_query.clone(),
+            self.statement_id,
+            self.config.fetch_size,
+            self.config.timeout,
+            self.config.enable_redirect_query,
             false,
         );
 
@@ -943,12 +945,15 @@ impl Session {
                     debug!(
                         "Execute statement {:?}, message: {:?}",
                         statement,
-                        resp.status.clone().message.unwrap_or("None".to_string())
+                        resp.status
+                            .clone()
+                            .message
+                            .unwrap_or_else(|| "None".to_string())
                     );
                     Ok(DataSet::new(
                         statement.to_string(),
                         self.session_id,
-                        self.config.fetch_size.clone(),
+                        self.config.fetch_size,
                         resp,
                     ))
                 } else {
@@ -972,10 +977,10 @@ impl Session {
                     debug!(
                         "Execute statements {:?}, message: {:?}",
                         statements,
-                        status.clone().message.unwrap_or("None".to_string())
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!("{}", status.message.unwrap());
                 }
             }
             Err(error) => error!("{}", error),
@@ -989,9 +994,9 @@ impl Session {
             self.session_id,
             query.to_string(),
             self.statement_id,
-            self.config.fetch_size.clone(),
-            self.config.timeout.clone(),
-            self.config.enable_redirect_query.clone(),
+            self.config.fetch_size,
+            self.config.timeout,
+            self.config.enable_redirect_query,
             false,
         );
 
@@ -1001,19 +1006,25 @@ impl Session {
                     debug!(
                         "Execute query {:?}, message: {:?}",
                         query,
-                        resp.status.clone().message.unwrap_or("None".to_string())
+                        resp.status
+                            .clone()
+                            .message
+                            .unwrap_or_else(|| "None".to_string())
                     );
                     Ok(DataSet::new(
                         query.to_string(),
                         self.session_id,
-                        self.config.fetch_size.clone(),
+                        self.config.fetch_size,
                         resp,
                     ))
                 } else {
                     error!(
                         "Exec query failed, code: {}, reason: {}",
                         resp.status.code.clone(),
-                        resp.status.clone().message.unwrap_or("None".to_string())
+                        resp.status
+                            .clone()
+                            .message
+                            .unwrap_or_else(|| "None".to_string())
                     );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
@@ -1031,9 +1042,9 @@ impl Session {
             self.session_id,
             statement.to_string(),
             self.statement_id,
-            self.config.fetch_size.clone(),
-            self.config.timeout.clone(),
-            self.config.enable_redirect_query.clone(),
+            self.config.fetch_size,
+            self.config.timeout,
+            self.config.enable_redirect_query,
             false,
         );
 
@@ -1043,12 +1054,15 @@ impl Session {
                     debug!(
                         "Execute update statement {:?}, message: {:?}",
                         statement,
-                        resp.status.clone().message.unwrap_or("None".to_string())
+                        resp.status
+                            .clone()
+                            .message
+                            .unwrap_or_else(|| "None".to_string())
                     );
                     Ok(DataSet::new(
                         statement.to_string(),
                         self.session_id,
-                        self.config.fetch_size.clone(),
+                        self.config.fetch_size,
                         resp,
                     ))
                 } else {
@@ -1073,11 +1087,11 @@ impl Session {
         let req = TSRawDataQueryReq::new(
             self.session_id,
             paths,
-            self.config.fetch_size.clone(),
+            self.config.fetch_size,
             start_time,
             end_time,
             self.statement_id,
-            self.config.enable_redirect_query.clone(),
+            self.config.enable_redirect_query,
             false,
         );
 
@@ -1087,7 +1101,7 @@ impl Session {
                     Ok(DataSet::new(
                         "".to_string(),
                         self.session_id,
-                        self.config.fetch_size.clone(),
+                        self.config.fetch_size,
                         resp,
                     ))
                 } else {
@@ -1123,7 +1137,7 @@ impl Session {
 
     /// Get time zone
     pub fn time_zone(&mut self) -> Result<String, Error> {
-        match self.client.get_time_zone(self.session_id.clone()) {
+        match self.client.get_time_zone(self.session_id) {
             Ok(resp) => {
                 if resp.status.code == 200 {
                     Ok(resp.time_zone)
@@ -1142,6 +1156,7 @@ impl Session {
     }
 
     /// Cancel operation
+    #[allow(dead_code)]
     fn cancel_operation(&mut self, query_id: i64) -> Result<(), Error> {
         let req = TSCancelOperationReq::new(self.session_id, query_id);
         match self.client.cancel_operation(req) {
@@ -1150,7 +1165,7 @@ impl Session {
                     Ok(())
                 } else {
                     let msg = format!("Cancel operation failed,'{:?}'", query_id);
-                    error!("{}", msg.clone());
+                    error!("{}", msg);
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
                         msg,

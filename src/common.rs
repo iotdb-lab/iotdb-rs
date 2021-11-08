@@ -41,6 +41,7 @@ impl From<&str> for DataType {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<i32> for DataType {
     fn into(self) -> i32 {
         match self {
@@ -91,23 +92,6 @@ impl From<i32> for Encoding {
     }
 }
 
-impl From<&str> for Encoding {
-    fn from(value: &str) -> Self {
-        match value {
-            "PLAIN" => Encoding::PLAIN,
-            "PlainDictionary" => Encoding::PlainDictionary,
-            "RLE" => Encoding::RLE,
-            "DIFF" => Encoding::DIFF,
-            "Ts2diff" => Encoding::Ts2diff,
-            "BITMAP" => Encoding::BITMAP,
-            "GorillaV1" => Encoding::GorillaV1,
-            "REGULAR" => Encoding::REGULAR,
-            "GORILLA" => Encoding::GORILLA,
-            _ => panic!("This '{}' encoding doesn't exist", value),
-        }
-    }
-}
-
 impl From<String> for Encoding {
     fn from(value: String) -> Self {
         match value.as_str() {
@@ -125,6 +109,7 @@ impl From<String> for Encoding {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<i32> for Encoding {
     fn into(self) -> i32 {
         match self {
@@ -208,6 +193,7 @@ impl From<String> for Compressor {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<i32> for Compressor {
     fn into(self) -> i32 {
         match self {

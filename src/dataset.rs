@@ -38,12 +38,18 @@ pub struct ValueRow {
     fields: Vec<Field>,
 }
 
-impl ValueRow {
-    pub fn new() -> Self {
+impl Default for ValueRow {
+    fn default() -> Self {
         Self {
             timestamp: 0,
             fields: vec![],
         }
+    }
+}
+
+impl ValueRow {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn timestamp(&mut self, timestamp: i64) -> &mut ValueRow {
@@ -108,7 +114,7 @@ impl DataSet {
             Some(data_type_list) => {
                 let mut tmp_data_types: Vec<DataType> = Vec::new();
                 data_type_list.iter().for_each(|data_type| {
-                    let ds_data_type = DataType::from(data_type);
+                    let ds_data_type = DataType::from(data_type.as_str());
                     tmp_data_types.push(ds_data_type);
                 });
                 tmp_data_types
@@ -125,9 +131,9 @@ impl DataSet {
             statement,
             session_id,
             fetch_size,
-            query_id: resp.query_id.clone().unwrap(),
+            query_id: resp.query_id.unwrap(),
             record_batch,
-            ignore_time_stamp: resp.ignore_time_stamp.clone(),
+            ignore_time_stamp: resp.ignore_time_stamp,
         }
     }
 
@@ -158,16 +164,16 @@ impl DataSet {
             for col_index in 0..columns.len() {
                 // add a new field
                 let column_name = columns[col_index].clone();
-                let data_type = data_types[col_index].clone();
+                let data_type = data_types[col_index];
                 let mut field = Field::new(data_type);
 
                 // reset column name index
                 let col_index = match resp.column_name_index_map.clone() {
                     None => col_index,
-                    Some(column_name_index_map) => column_name_index_map
+                    Some(column_name_index_map) => *column_name_index_map
                         .get(column_name.as_str())
                         .unwrap_or(&(col_index as i32))
-                        .clone() as usize,
+                        as usize,
                 };
 
                 // is null value
@@ -211,7 +217,7 @@ impl DataSet {
                 }
                 value_row.add_field(field);
             }
-            row_num = row_num + 1;
+            row_num += 1;
             values.push(value_row);
         }
 
@@ -223,6 +229,7 @@ impl DataSet {
         debug!("{:?}", &batch);
 
         let mut table: Table = Table::new();
+        table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
         if !batch.is_empty {
             let ignore_time_stamp = self.ignore_time_stamp.unwrap_or(false);
 
@@ -241,7 +248,7 @@ impl DataSet {
             batch.values.iter().for_each(|row| {
                 let mut value_cells: Vec<Cell> = Vec::new();
                 if !ignore_time_stamp {
-                    let dt: DateTime<Local> = Local.timestamp_millis(row.timestamp.clone());
+                    let dt: DateTime<Local> = Local.timestamp_millis(row.timestamp);
                     value_cells.push(cell!(dt.to_string()));
                 }
 

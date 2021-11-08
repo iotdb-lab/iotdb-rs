@@ -4685,6 +4685,83 @@ impl TSCreateSchemaTemplateReq {
 }
 
 //
+// TSUnsetSchemaTemplateReq
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSUnsetSchemaTemplateReq {
+  pub session_id: i64,
+  pub prefix_path: String,
+  pub template_name: String,
+}
+
+impl TSUnsetSchemaTemplateReq {
+  pub fn new(session_id: i64, prefix_path: String, template_name: String) -> TSUnsetSchemaTemplateReq {
+    TSUnsetSchemaTemplateReq {
+      session_id,
+      prefix_path,
+      template_name,
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSUnsetSchemaTemplateReq> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<i64> = None;
+    let mut f_2: Option<String> = None;
+    let mut f_3: Option<String> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = i_prot.read_i64()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_string()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let val = i_prot.read_string()?;
+          f_3 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSUnsetSchemaTemplateReq.session_id", &f_1)?;
+    verify_required_field_exists("TSUnsetSchemaTemplateReq.prefix_path", &f_2)?;
+    verify_required_field_exists("TSUnsetSchemaTemplateReq.template_name", &f_3)?;
+    let ret = TSUnsetSchemaTemplateReq {
+      session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      prefix_path: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      template_name: f_3.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSUnsetSchemaTemplateReq");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("sessionId", TType::I64, 1))?;
+    o_prot.write_i64(self.session_id)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("prefixPath", TType::String, 2))?;
+    o_prot.write_string(&self.prefix_path)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("templateName", TType::String, 3))?;
+    o_prot.write_string(&self.template_name)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
 // TSIService service client
 //
 
@@ -4728,6 +4805,7 @@ pub trait TTSIServiceSyncClient {
   fn request_statement_id(&mut self, session_id: i64) -> thrift::Result<i64>;
   fn create_schema_template(&mut self, req: TSCreateSchemaTemplateReq) -> thrift::Result<TSStatus>;
   fn set_schema_template(&mut self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn unset_schema_template(&mut self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus>;
 }
 
 pub trait TTSIServiceSyncClientMarker {}
@@ -5807,6 +5885,33 @@ impl <C: TThriftClient + TTSIServiceSyncClientMarker> TTSIServiceSyncClient for 
       result.ok_or()
     }
   }
+  fn unset_schema_template(&mut self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus> {
+    (
+      {
+        self.increment_sequence_number();
+        let message_ident = TMessageIdentifier::new("unsetSchemaTemplate", TMessageType::Call, self.sequence_number());
+        let call_args = TSIServiceUnsetSchemaTemplateArgs { req };
+        self.o_prot_mut().write_message_begin(&message_ident)?;
+        call_args.write_to_out_protocol(self.o_prot_mut())?;
+        self.o_prot_mut().write_message_end()?;
+        self.o_prot_mut().flush()
+      }
+    )?;
+    {
+      let message_ident = self.i_prot_mut().read_message_begin()?;
+      verify_expected_sequence_number(self.sequence_number(), message_ident.sequence_number)?;
+      verify_expected_service_call("unsetSchemaTemplate", &message_ident.name)?;
+      if message_ident.message_type == TMessageType::Exception {
+        let remote_error = thrift::Error::read_application_error_from_in_protocol(self.i_prot_mut())?;
+        self.i_prot_mut().read_message_end()?;
+        return Err(thrift::Error::Application(remote_error))
+      }
+      verify_expected_message_type(TMessageType::Reply, message_ident.message_type)?;
+      let result = TSIServiceUnsetSchemaTemplateResult::read_from_in_protocol(self.i_prot_mut())?;
+      self.i_prot_mut().read_message_end()?;
+      result.ok_or()
+    }
+  }
 }
 
 //
@@ -5853,6 +5958,7 @@ pub trait TSIServiceSyncHandler {
   fn handle_request_statement_id(&self, session_id: i64) -> thrift::Result<i64>;
   fn handle_create_schema_template(&self, req: TSCreateSchemaTemplateReq) -> thrift::Result<TSStatus>;
   fn handle_set_schema_template(&self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn handle_unset_schema_template(&self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus>;
 }
 
 pub struct TSIServiceSyncProcessor<H: TSIServiceSyncHandler> {
@@ -5981,6 +6087,9 @@ impl <H: TSIServiceSyncHandler> TSIServiceSyncProcessor<H> {
   }
   fn process_set_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     TTSIServiceProcessFunctions::process_set_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
+  }
+  fn process_unset_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    TTSIServiceProcessFunctions::process_unset_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
   }
 }
 
@@ -7430,6 +7539,43 @@ impl TTSIServiceProcessFunctions {
       },
     }
   }
+  pub fn process_unset_schema_template<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let args = TSIServiceUnsetSchemaTemplateArgs::read_from_in_protocol(i_prot)?;
+    match handler.handle_unset_schema_template(args.req) {
+      Ok(handler_return) => {
+        let message_ident = TMessageIdentifier::new("unsetSchemaTemplate", TMessageType::Reply, incoming_sequence_number);
+        o_prot.write_message_begin(&message_ident)?;
+        let ret = TSIServiceUnsetSchemaTemplateResult { result_value: Some(handler_return) };
+        ret.write_to_out_protocol(o_prot)?;
+        o_prot.write_message_end()?;
+        o_prot.flush()
+      },
+      Err(e) => {
+        match e {
+          thrift::Error::Application(app_err) => {
+            let message_ident = TMessageIdentifier::new("unsetSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&app_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+          _ => {
+            let ret_err = {
+              ApplicationError::new(
+                ApplicationErrorKind::Unknown,
+                e.to_string()
+              )
+            };
+            let message_ident = TMessageIdentifier::new("unsetSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&ret_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+        }
+      },
+    }
+  }
 }
 
 impl <H: TSIServiceSyncHandler> TProcessor for TSIServiceSyncProcessor<H> {
@@ -7552,6 +7698,9 @@ impl <H: TSIServiceSyncHandler> TProcessor for TSIServiceSyncProcessor<H> {
       },
       "setSchemaTemplate" => {
         self.process_set_schema_template(message_ident.sequence_number, i_prot, o_prot)
+      },
+      "unsetSchemaTemplate" => {
+        self.process_unset_schema_template(message_ident.sequence_number, i_prot, o_prot)
       },
       method => {
         Err(
@@ -11931,6 +12080,117 @@ impl TSIServiceSetSchemaTemplateResult {
           ApplicationError::new(
             ApplicationErrorKind::MissingResult,
             "no result received for TSIServiceSetSchemaTemplate"
+          )
+        )
+      )
+    }
+  }
+}
+
+//
+// TSIServiceUnsetSchemaTemplateArgs
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceUnsetSchemaTemplateArgs {
+  req: TSUnsetSchemaTemplateReq,
+}
+
+impl TSIServiceUnsetSchemaTemplateArgs {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceUnsetSchemaTemplateArgs> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSUnsetSchemaTemplateReq> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSUnsetSchemaTemplateReq::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSIServiceUnsetSchemaTemplateArgs.req", &f_1)?;
+    let ret = TSIServiceUnsetSchemaTemplateArgs {
+      req: f_1.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("unsetSchemaTemplate_args");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("req", TType::Struct, 1))?;
+    self.req.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSIServiceUnsetSchemaTemplateResult
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceUnsetSchemaTemplateResult {
+  result_value: Option<TSStatus>,
+}
+
+impl TSIServiceUnsetSchemaTemplateResult {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceUnsetSchemaTemplateResult> {
+    i_prot.read_struct_begin()?;
+    let mut f_0: Option<TSStatus> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        0 => {
+          let val = TSStatus::read_from_in_protocol(i_prot)?;
+          f_0 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    let ret = TSIServiceUnsetSchemaTemplateResult {
+      result_value: f_0,
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSIServiceUnsetSchemaTemplateResult");
+    o_prot.write_struct_begin(&struct_ident)?;
+    if let Some(ref fld_var) = self.result_value {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result_value", TType::Struct, 0))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+  fn ok_or(self) -> thrift::Result<TSStatus> {
+    if self.result_value.is_some() {
+      Ok(self.result_value.unwrap())
+    } else {
+      Err(
+        thrift::Error::Application(
+          ApplicationError::new(
+            ApplicationErrorKind::MissingResult,
+            "no result received for TSIServiceUnsetSchemaTemplate"
           )
         )
       )

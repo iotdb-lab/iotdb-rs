@@ -15,12 +15,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
-        match file.file_name().to_str() {
-            Some(input_file) => {
-                let gen_file = format!("{}/{}", file.path().to_str().unwrap(), input_file);
-                gen(out_dir, gen_file.as_str());
-            }
-            None => {}
+        if let Some(input_file) = file.file_name().to_str() {
+            let gen_file = format!("{}/{}", file.path().to_str().unwrap(), input_file);
+            gen(out_dir, gen_file.as_str());
         }
     }
 
