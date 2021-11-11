@@ -16,6 +16,8 @@
 
 ---
 
+![Alt](https://repobeats.axiom.co/api/embed/15bcb8c6b0f3a63838c7ca62234867b58ec60b28.svg "Repobeats analytics image")
+
 ## Overview
 
 IoTDB (Internet of Things Database) is a data management system for time series data, which can provide users specific
