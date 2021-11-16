@@ -107,10 +107,6 @@ use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind};
 
 #[macro_use]
 extern crate prettytable;
-
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
-
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
 const SUCCESS_CODE: i32 = 200;
@@ -292,10 +288,6 @@ impl Session {
             }
             Err(error) => {
                 error!(
-                    "TcpStream connect to {:?} failed, reason: {}",
-                    config.endpoint, error
-                );
-                panic!(
                     "TcpStream connect to {:?} failed, reason: {}",
                     config.endpoint, error
                 );
