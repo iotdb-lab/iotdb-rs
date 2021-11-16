@@ -93,7 +93,6 @@ use crate::rpc::{
 };
 use chrono::{Local, Utc};
 use log::{debug, error};
-use mimalloc::MiMalloc;
 use std::collections::BTreeMap;
 use std::env;
 use std::net::TcpStream;
@@ -287,7 +286,7 @@ impl Session {
                 tcp_stream
             }
             Err(error) => {
-                error!(
+                panic!(
                     "TcpStream connect to {:?} failed, reason: {}",
                     config.endpoint, error
                 );
