@@ -101,7 +101,7 @@ curl -O https://archive.apache.org/dist/iotdb/0.11.2/apache-iotdb-0.11.2-bin.zip
 cd $IOTDB_HOME && sbin/start-server -c conf -rpc_port 6667
 ```
 
-3. Install rust toolchain form [here](https://www.rust-lang.org/tools/install)
+3. Install rust toolchain from [here](https://www.rust-lang.org/tools/install)
 
 ```shell
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
