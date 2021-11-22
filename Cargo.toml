@@ -11,9 +11,10 @@ description = "Apache IotDB Client written in Rust"
 keywords = ["client", "iotdb", "lib", "db"]
 
 [dependencies]
-prettytable-rs = "^0.8"
+byteorder = "1"
 chrono = "0.4"
 thrift = "0.15"
 log = "0.4.13"
 fern = "0.6.0"
-byteorder = "1"
+prettytable-rs = "^0.8"
+polars = "0.17.0"

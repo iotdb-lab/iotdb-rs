@@ -80,6 +80,7 @@ pub mod common;
 pub mod dataset;
 pub mod rpc;
 
+pub use chrono;
 pub use thrift;
 
 use crate::common::{Compressor, DataType, Encoding, Logger};
@@ -102,10 +103,11 @@ use thrift::protocol::{
     TInputProtocol, TOutputProtocol,
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
-use thrift::{ApplicationErrorKind, Error, ProtocolErrorKind};
+use thrift::{ApplicationErrorKind, Error as ThriftError, ProtocolErrorKind};
 
 #[macro_use]
 extern crate prettytable;
+
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
 const SUCCESS_CODE: i32 = 200;
@@ -320,7 +322,7 @@ impl Session {
     }
 
     // Open Session
-    pub fn open(mut self) -> Result<Session, Error> {
+    pub fn open(mut self) -> Result<Session, ThriftError> {
         let open_req = TSOpenSessionReq::new(
             self.config.protocol_version,
             self.config.zone_id.clone(),
@@ -380,7 +382,7 @@ impl Session {
     }
 
     // Close Session
-    pub fn close(&mut self) -> Result<(), Error> {
+    pub fn close(&mut self) -> Result<(), ThriftError> {
         if self.is_close {
             Ok(())
         } else {
@@ -409,7 +411,7 @@ impl Session {
     }
 
     /// Set a storage group
-    pub fn set_storage_group(&mut self, storage_group: &str) -> Result<(), Error> {
+    pub fn set_storage_group(&mut self, storage_group: &str) -> Result<(), ThriftError> {
         match self
             .client
             .set_storage_group(self.session_id, storage_group.to_string())
@@ -435,13 +437,16 @@ impl Session {
     }
 
     /// Delete a storage group.
-    pub fn delete_storage_group(&mut self, storage_group: &str) -> Result<(), Error> {
+    pub fn delete_storage_group(&mut self, storage_group: &str) -> Result<(), ThriftError> {
         debug!("Delete storage group {:?}", storage_group);
         self.delete_storage_groups(vec![storage_group.to_string()])
     }
 
     /// Delete storage groups.
-    pub fn delete_storage_groups(&mut self, storage_groups: Vec<String>) -> Result<(), Error> {
+    pub fn delete_storage_groups(
+        &mut self,
+        storage_groups: Vec<String>,
+    ) -> Result<(), ThriftError> {
         match self
             .client
             .delete_storage_groups(self.session_id, storage_groups.clone())
@@ -473,7 +478,7 @@ impl Session {
         data_type: DataType,
         encoding: Encoding,
         compressor: Compressor,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSCreateTimeseriesReq::new(
             self.session_id,
             ts_path.to_string(),
@@ -523,7 +528,7 @@ impl Session {
         data_type_vec: Vec<i32>,
         encoding_vec: Vec<i32>,
         compressor_vec: Vec<i32>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSCreateMultiTimeseriesReq::new(
             self.session_id,
             ts_path_vec.clone(),
@@ -557,7 +562,7 @@ impl Session {
     }
 
     /// Delete multiple time series
-    pub fn delete_time_series(&mut self, path_vec: Vec<String>) -> Result<(), Error> {
+    pub fn delete_time_series(&mut self, path_vec: Vec<String>) -> Result<(), ThriftError> {
         match self
             .client
             .delete_timeseries(self.session_id, path_vec.clone())
@@ -583,7 +588,7 @@ impl Session {
     }
 
     /// Check whether a specific time-series exists
-    pub fn check_time_series_exists(&mut self, path: &str) -> Result<bool, Error> {
+    pub fn check_time_series_exists(&mut self, path: &str) -> Result<bool, ThriftError> {
         let config = self.config.clone();
         let statement = format!("SHOW TIMESERIES {}", path);
         let req = TSExecuteStatementReq::new(
@@ -615,7 +620,11 @@ impl Session {
     }
 
     /// Delete all data <= time in multiple time-series
-    pub fn delete_data(&mut self, path_vec: Vec<String>, timestamp: i64) -> Result<(), Error> {
+    pub fn delete_data(
+        &mut self,
+        path_vec: Vec<String>,
+        timestamp: i64,
+    ) -> Result<(), ThriftError> {
         let req = TSDeleteDataReq::new(self.session_id, path_vec.clone(), 0, timestamp);
         match self.client.delete_data(req) {
             Ok(status) => {
@@ -646,7 +655,7 @@ impl Session {
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<String>>,
         is_aligned: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSInsertStringRecordsReq::new(
             self.session_id,
             device_ids.clone(),
@@ -684,7 +693,7 @@ impl Session {
         measurements: Vec<String>,
         values: Vec<u8>,
         is_aligned: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSInsertRecordReq::new(
             self.session_id,
             device_id.to_string(),
@@ -723,7 +732,7 @@ impl Session {
         measurements: Vec<String>,
         values: Vec<u8>,
         is_aligned: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSInsertRecordReq::new(
             self.session_id,
             prefix_path.to_string(),
@@ -761,7 +770,7 @@ impl Session {
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<u8>>,
         is_aligned: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSInsertRecordsReq::new(
             self.session_id,
             prefix_paths.clone(),
@@ -800,7 +809,7 @@ impl Session {
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<u8>>,
         is_aligned: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ThriftError> {
         let req = TSInsertRecordsReq::new(
             self.session_id,
             prefix_paths,
@@ -848,7 +857,7 @@ impl Session {
         types: Vec<i32>,
         size: i32,
         is_aligned: bool,
-    ) -> Result<TSStatus, Error> {
+    ) -> Result<TSStatus, ThriftError> {
         let req = TSInsertTabletReq::new(
             self.session_id,
             prefix_path.to_string(),
@@ -874,7 +883,7 @@ impl Session {
         types_list: Vec<Vec<i32>>,
         size_list: Vec<i32>,
         is_aligned: bool,
-    ) -> Result<TSStatus, Error> {
+    ) -> Result<TSStatus, ThriftError> {
         let req = TSInsertTabletsReq::new(
             self.session_id,
             prefix_paths,
@@ -913,12 +922,12 @@ impl Session {
     /// TODO
     pub fn gen_insert_tablets_req() {}
 
-    pub fn sql(&mut self, sql: &str) -> Result<DataSet, Error> {
+    pub fn sql(&mut self, sql: &str) -> Result<DataSet, ThriftError> {
         self.exec(sql)
     }
 
     /// execute query sql statement and return a DataSet
-    fn exec(&mut self, statement: &str) -> Result<DataSet, Error> {
+    fn exec(&mut self, statement: &str) -> Result<DataSet, ThriftError> {
         debug!("Exec statement \"{}\"", statement);
         let req = TSExecuteStatementReq::new(
             self.session_id,
@@ -979,7 +988,7 @@ impl Session {
     }
 
     /// execute query sql statement and return a DataSet
-    pub fn exec_query(&mut self, query: &str) -> Result<DataSet, Error> {
+    pub fn exec_query(&mut self, query: &str) -> Result<DataSet, ThriftError> {
         debug!("Exec query \"{}\"", &query);
         let req = TSExecuteStatementReq::new(
             self.session_id,
@@ -1028,7 +1037,7 @@ impl Session {
     }
 
     /// execute update statement and return a DataSet
-    pub fn exec_update(&mut self, statement: &str) -> Result<DataSet, Error> {
+    pub fn exec_update(&mut self, statement: &str) -> Result<DataSet, ThriftError> {
         let req = TSExecuteStatementReq::new(
             self.session_id,
             statement.to_string(),
@@ -1074,7 +1083,7 @@ impl Session {
         paths: Vec<String>,
         start_time: i64,
         end_time: i64,
-    ) -> Result<DataSet, Error> {
+    ) -> Result<DataSet, ThriftError> {
         let req = TSRawDataQueryReq::new(
             self.session_id,
             paths,
@@ -1108,7 +1117,7 @@ impl Session {
     }
 
     /// Set time zone
-    pub fn set_time_zone(&mut self, time_zone: &str) -> Result<(), Error> {
+    pub fn set_time_zone(&mut self, time_zone: &str) -> Result<(), ThriftError> {
         let req = TSSetTimeZoneReq::new(self.session_id, time_zone.to_string());
         match self.client.set_time_zone(req) {
             Ok(status) => {
@@ -1127,7 +1136,7 @@ impl Session {
     }
 
     /// Get time zone
-    pub fn time_zone(&mut self) -> Result<String, Error> {
+    pub fn time_zone(&mut self) -> Result<String, ThriftError> {
         match self.client.get_time_zone(self.session_id) {
             Ok(resp) => {
                 if resp.status.code == 200 {
@@ -1148,7 +1157,7 @@ impl Session {
 
     /// Cancel operation
     #[allow(dead_code)]
-    fn cancel_operation(&mut self, query_id: i64) -> Result<(), Error> {
+    fn cancel_operation(&mut self, query_id: i64) -> Result<(), ThriftError> {
         let req = TSCancelOperationReq::new(self.session_id, query_id);
         match self.client.cancel_operation(req) {
             Ok(status) => {

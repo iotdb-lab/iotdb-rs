@@ -1,9 +1,10 @@
+use chrono::Local;
 use thrift::Error;
 
 use iotdb::common::{Compressor, DataType, Encoding};
 use iotdb::{Config, Session};
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), ThriftError> {
     let config = Config::new()
         .endpoint("127.0.0.1", "6667")
         .user("root")
@@ -31,13 +32,33 @@ fn main() -> Result<(), Error> {
         Compressor::default(),
     )?;
 
-    session.sql("INSERT INTO root.ln.wf01.wt01(timestamp,status) values(100,true)")?;
-    session.sql("INSERT INTO root.ln.wf01.wt01(timestamp,status) values(200,false)")?;
     session.sql(
-        "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values(300,false,18.36)",
+        format!(
+            "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},true)",
+            Local::now().timestamp()
+        )
+        .as_str(),
     )?;
     session.sql(
-        "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values(400,true,32.23)",
+        format!(
+            "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},false)",
+            Local::now().timestamp()
+        )
+        .as_str(),
+    )?;
+    session.sql(
+        format!(
+            "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},false,18.36)",
+            Local::now().timestamp()
+        )
+        .as_str(),
+    )?;
+    session.sql(
+        format!(
+            "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},true,32.23)",
+            Local::now().timestamp()
+        )
+        .as_str(),
     )?;
     session.sql("select * from root.ln")?.show();
 

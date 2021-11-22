@@ -4487,23 +4487,25 @@ impl TSSetSchemaTemplateReq {
 pub struct TSCreateSchemaTemplateReq {
   pub session_id: i64,
   pub name: String,
-  pub schema_names: Vec<String>,
+  pub schema_names: Option<Vec<String>>,
   pub measurements: Vec<Vec<String>>,
   pub data_types: Vec<Vec<i32>>,
   pub encodings: Vec<Vec<i32>>,
-  pub compressors: Vec<i32>,
+  pub compressors: Vec<Vec<i32>>,
+  pub serialized_template: Option<Vec<u8>>,
 }
 
 impl TSCreateSchemaTemplateReq {
-  pub fn new(session_id: i64, name: String, schema_names: Vec<String>, measurements: Vec<Vec<String>>, data_types: Vec<Vec<i32>>, encodings: Vec<Vec<i32>>, compressors: Vec<i32>) -> TSCreateSchemaTemplateReq {
+  pub fn new<F3, F8>(session_id: i64, name: String, schema_names: F3, measurements: Vec<Vec<String>>, data_types: Vec<Vec<i32>>, encodings: Vec<Vec<i32>>, compressors: Vec<Vec<i32>>, serialized_template: F8) -> TSCreateSchemaTemplateReq where F3: Into<Option<Vec<String>>>, F8: Into<Option<Vec<u8>>> {
     TSCreateSchemaTemplateReq {
       session_id,
       name,
-      schema_names,
+      schema_names: schema_names.into(),
       measurements,
       data_types,
       encodings,
       compressors,
+      serialized_template: serialized_template.into(),
     }
   }
   pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSCreateSchemaTemplateReq> {
@@ -4514,7 +4516,8 @@ impl TSCreateSchemaTemplateReq {
     let mut f_4: Option<Vec<Vec<String>>> = None;
     let mut f_5: Option<Vec<Vec<i32>>> = None;
     let mut f_6: Option<Vec<Vec<i32>>> = None;
-    let mut f_7: Option<Vec<i32>> = None;
+    let mut f_7: Option<Vec<Vec<i32>>> = None;
+    let mut f_8: Option<Vec<u8>> = None;
     loop {
       let field_ident = i_prot.read_field_begin()?;
       if field_ident.field_type == TType::Stop {
@@ -4590,13 +4593,23 @@ impl TSCreateSchemaTemplateReq {
         },
         7 => {
           let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+          let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_82 = i_prot.read_i32()?;
+            let list_ident = i_prot.read_list_begin()?;
+            let mut list_elem_82: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+            for _ in 0..list_ident.size {
+              let list_elem_83 = i_prot.read_i32()?;
+              list_elem_82.push(list_elem_83);
+            }
+            i_prot.read_list_end()?;
             val.push(list_elem_82);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
+        },
+        8 => {
+          let val = i_prot.read_bytes()?;
+          f_8 = Some(val);
         },
         _ => {
           i_prot.skip(field_ident.field_type)?;
@@ -4607,7 +4620,6 @@ impl TSCreateSchemaTemplateReq {
     i_prot.read_struct_end()?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.session_id", &f_1)?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.name", &f_2)?;
-    verify_required_field_exists("TSCreateSchemaTemplateReq.schema_names", &f_3)?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.measurements", &f_4)?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.data_types", &f_5)?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.encodings", &f_6)?;
@@ -4615,11 +4627,12 @@ impl TSCreateSchemaTemplateReq {
     let ret = TSCreateSchemaTemplateReq {
       session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
       name: f_2.expect("auto-generated code should have checked for presence of required fields"),
-      schema_names: f_3.expect("auto-generated code should have checked for presence of required fields"),
+      schema_names: f_3,
       measurements: f_4.expect("auto-generated code should have checked for presence of required fields"),
       data_types: f_5.expect("auto-generated code should have checked for presence of required fields"),
       encodings: f_6.expect("auto-generated code should have checked for presence of required fields"),
       compressors: f_7.expect("auto-generated code should have checked for presence of required fields"),
+      serialized_template: f_8,
     };
     Ok(ret)
   }
@@ -4632,13 +4645,15 @@ impl TSCreateSchemaTemplateReq {
     o_prot.write_field_begin(&TFieldIdentifier::new("name", TType::String, 2))?;
     o_prot.write_string(&self.name)?;
     o_prot.write_field_end()?;
-    o_prot.write_field_begin(&TFieldIdentifier::new("schemaNames", TType::List, 3))?;
-    o_prot.write_list_begin(&TListIdentifier::new(TType::String, self.schema_names.len() as i32))?;
-    for e in &self.schema_names {
-      o_prot.write_string(e)?;
+    if let Some(ref fld_var) = self.schema_names {
+      o_prot.write_field_begin(&TFieldIdentifier::new("schemaNames", TType::List, 3))?;
+      o_prot.write_list_begin(&TListIdentifier::new(TType::String, fld_var.len() as i32))?;
+      for e in fld_var {
+        o_prot.write_string(e)?;
+      }
+      o_prot.write_list_end()?;
+      o_prot.write_field_end()?
     }
-    o_prot.write_list_end()?;
-    o_prot.write_field_end()?;
     o_prot.write_field_begin(&TFieldIdentifier::new("measurements", TType::List, 4))?;
     o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.measurements.len() as i32))?;
     for e in &self.measurements {
@@ -4673,12 +4688,467 @@ impl TSCreateSchemaTemplateReq {
     o_prot.write_list_end()?;
     o_prot.write_field_end()?;
     o_prot.write_field_begin(&TFieldIdentifier::new("compressors", TType::List, 7))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.compressors.len() as i32))?;
+    for e in &self.compressors {
+      o_prot.write_list_begin(&TListIdentifier::new(TType::I32, e.len() as i32))?;
+      for e in e {
+        o_prot.write_i32(*e)?;
+      }
+      o_prot.write_list_end()?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    if let Some(ref fld_var) = self.serialized_template {
+      o_prot.write_field_begin(&TFieldIdentifier::new("serializedTemplate", TType::String, 8))?;
+      o_prot.write_bytes(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSAppendSchemaTemplateReq
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSAppendSchemaTemplateReq {
+  pub session_id: i64,
+  pub name: String,
+  pub is_aligned: bool,
+  pub measurements: Vec<String>,
+  pub data_types: Vec<i32>,
+  pub encodings: Vec<i32>,
+  pub compressors: Vec<i32>,
+}
+
+impl TSAppendSchemaTemplateReq {
+  pub fn new(session_id: i64, name: String, is_aligned: bool, measurements: Vec<String>, data_types: Vec<i32>, encodings: Vec<i32>, compressors: Vec<i32>) -> TSAppendSchemaTemplateReq {
+    TSAppendSchemaTemplateReq {
+      session_id,
+      name,
+      is_aligned,
+      measurements,
+      data_types,
+      encodings,
+      compressors,
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSAppendSchemaTemplateReq> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<i64> = None;
+    let mut f_2: Option<String> = None;
+    let mut f_3: Option<bool> = None;
+    let mut f_4: Option<Vec<String>> = None;
+    let mut f_5: Option<Vec<i32>> = None;
+    let mut f_6: Option<Vec<i32>> = None;
+    let mut f_7: Option<Vec<i32>> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = i_prot.read_i64()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_string()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let val = i_prot.read_bool()?;
+          f_3 = Some(val);
+        },
+        4 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_84 = i_prot.read_string()?;
+            val.push(list_elem_84);
+          }
+          i_prot.read_list_end()?;
+          f_4 = Some(val);
+        },
+        5 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_85 = i_prot.read_i32()?;
+            val.push(list_elem_85);
+          }
+          i_prot.read_list_end()?;
+          f_5 = Some(val);
+        },
+        6 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_86 = i_prot.read_i32()?;
+            val.push(list_elem_86);
+          }
+          i_prot.read_list_end()?;
+          f_6 = Some(val);
+        },
+        7 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_87 = i_prot.read_i32()?;
+            val.push(list_elem_87);
+          }
+          i_prot.read_list_end()?;
+          f_7 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.session_id", &f_1)?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.name", &f_2)?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.is_aligned", &f_3)?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.measurements", &f_4)?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.data_types", &f_5)?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.encodings", &f_6)?;
+    verify_required_field_exists("TSAppendSchemaTemplateReq.compressors", &f_7)?;
+    let ret = TSAppendSchemaTemplateReq {
+      session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      name: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      is_aligned: f_3.expect("auto-generated code should have checked for presence of required fields"),
+      measurements: f_4.expect("auto-generated code should have checked for presence of required fields"),
+      data_types: f_5.expect("auto-generated code should have checked for presence of required fields"),
+      encodings: f_6.expect("auto-generated code should have checked for presence of required fields"),
+      compressors: f_7.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSAppendSchemaTemplateReq");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("sessionId", TType::I64, 1))?;
+    o_prot.write_i64(self.session_id)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("name", TType::String, 2))?;
+    o_prot.write_string(&self.name)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("isAligned", TType::Bool, 3))?;
+    o_prot.write_bool(self.is_aligned)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("measurements", TType::List, 4))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::String, self.measurements.len() as i32))?;
+    for e in &self.measurements {
+      o_prot.write_string(e)?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("dataTypes", TType::List, 5))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::I32, self.data_types.len() as i32))?;
+    for e in &self.data_types {
+      o_prot.write_i32(*e)?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("encodings", TType::List, 6))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::I32, self.encodings.len() as i32))?;
+    for e in &self.encodings {
+      o_prot.write_i32(*e)?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("compressors", TType::List, 7))?;
     o_prot.write_list_begin(&TListIdentifier::new(TType::I32, self.compressors.len() as i32))?;
     for e in &self.compressors {
       o_prot.write_i32(*e)?;
     }
     o_prot.write_list_end()?;
     o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSPruneSchemaTemplateReq
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSPruneSchemaTemplateReq {
+  pub session_id: i64,
+  pub name: String,
+  pub path: String,
+}
+
+impl TSPruneSchemaTemplateReq {
+  pub fn new(session_id: i64, name: String, path: String) -> TSPruneSchemaTemplateReq {
+    TSPruneSchemaTemplateReq {
+      session_id,
+      name,
+      path,
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSPruneSchemaTemplateReq> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<i64> = None;
+    let mut f_2: Option<String> = None;
+    let mut f_3: Option<String> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = i_prot.read_i64()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_string()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let val = i_prot.read_string()?;
+          f_3 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSPruneSchemaTemplateReq.session_id", &f_1)?;
+    verify_required_field_exists("TSPruneSchemaTemplateReq.name", &f_2)?;
+    verify_required_field_exists("TSPruneSchemaTemplateReq.path", &f_3)?;
+    let ret = TSPruneSchemaTemplateReq {
+      session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      name: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      path: f_3.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSPruneSchemaTemplateReq");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("sessionId", TType::I64, 1))?;
+    o_prot.write_i64(self.session_id)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("name", TType::String, 2))?;
+    o_prot.write_string(&self.name)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("path", TType::String, 3))?;
+    o_prot.write_string(&self.path)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSQueryTemplateReq
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSQueryTemplateReq {
+  pub session_id: i64,
+  pub name: String,
+  pub query_type: i32,
+  pub measurement: Option<String>,
+}
+
+impl TSQueryTemplateReq {
+  pub fn new<F4>(session_id: i64, name: String, query_type: i32, measurement: F4) -> TSQueryTemplateReq where F4: Into<Option<String>> {
+    TSQueryTemplateReq {
+      session_id,
+      name,
+      query_type,
+      measurement: measurement.into(),
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSQueryTemplateReq> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<i64> = None;
+    let mut f_2: Option<String> = None;
+    let mut f_3: Option<i32> = None;
+    let mut f_4: Option<String> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = i_prot.read_i64()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_string()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let val = i_prot.read_i32()?;
+          f_3 = Some(val);
+        },
+        4 => {
+          let val = i_prot.read_string()?;
+          f_4 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSQueryTemplateReq.session_id", &f_1)?;
+    verify_required_field_exists("TSQueryTemplateReq.name", &f_2)?;
+    verify_required_field_exists("TSQueryTemplateReq.query_type", &f_3)?;
+    let ret = TSQueryTemplateReq {
+      session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      name: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      query_type: f_3.expect("auto-generated code should have checked for presence of required fields"),
+      measurement: f_4,
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSQueryTemplateReq");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("sessionId", TType::I64, 1))?;
+    o_prot.write_i64(self.session_id)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("name", TType::String, 2))?;
+    o_prot.write_string(&self.name)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("queryType", TType::I32, 3))?;
+    o_prot.write_i32(self.query_type)?;
+    o_prot.write_field_end()?;
+    if let Some(ref fld_var) = self.measurement {
+      o_prot.write_field_begin(&TFieldIdentifier::new("measurement", TType::String, 4))?;
+      o_prot.write_string(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSQueryTemplateResp
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSQueryTemplateResp {
+  pub status: TSStatus,
+  pub query_type: i32,
+  pub result: Option<bool>,
+  pub count: Option<i32>,
+  pub measurements: Option<Vec<String>>,
+}
+
+impl TSQueryTemplateResp {
+  pub fn new<F3, F4, F5>(status: TSStatus, query_type: i32, result: F3, count: F4, measurements: F5) -> TSQueryTemplateResp where F3: Into<Option<bool>>, F4: Into<Option<i32>>, F5: Into<Option<Vec<String>>> {
+    TSQueryTemplateResp {
+      status,
+      query_type,
+      result: result.into(),
+      count: count.into(),
+      measurements: measurements.into(),
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSQueryTemplateResp> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSStatus> = None;
+    let mut f_2: Option<i32> = None;
+    let mut f_3: Option<bool> = None;
+    let mut f_4: Option<i32> = None;
+    let mut f_5: Option<Vec<String>> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSStatus::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_i32()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let val = i_prot.read_bool()?;
+          f_3 = Some(val);
+        },
+        4 => {
+          let val = i_prot.read_i32()?;
+          f_4 = Some(val);
+        },
+        5 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_88 = i_prot.read_string()?;
+            val.push(list_elem_88);
+          }
+          i_prot.read_list_end()?;
+          f_5 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSQueryTemplateResp.status", &f_1)?;
+    verify_required_field_exists("TSQueryTemplateResp.query_type", &f_2)?;
+    let ret = TSQueryTemplateResp {
+      status: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      query_type: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      result: f_3,
+      count: f_4,
+      measurements: f_5,
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSQueryTemplateResp");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("status", TType::Struct, 1))?;
+    self.status.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("queryType", TType::I32, 2))?;
+    o_prot.write_i32(self.query_type)?;
+    o_prot.write_field_end()?;
+    if let Some(fld_var) = self.result {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result", TType::Bool, 3))?;
+      o_prot.write_bool(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(fld_var) = self.count {
+      o_prot.write_field_begin(&TFieldIdentifier::new("count", TType::I32, 4))?;
+      o_prot.write_i32(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    if let Some(ref fld_var) = self.measurements {
+      o_prot.write_field_begin(&TFieldIdentifier::new("measurements", TType::List, 5))?;
+      o_prot.write_list_begin(&TListIdentifier::new(TType::String, fld_var.len() as i32))?;
+      for e in fld_var {
+        o_prot.write_string(e)?;
+      }
+      o_prot.write_list_end()?;
+      o_prot.write_field_end()?
+    }
     o_prot.write_field_stop()?;
     o_prot.write_struct_end()
   }
@@ -4804,6 +5274,9 @@ pub trait TTSIServiceSyncClient {
   fn execute_last_data_query(&mut self, req: TSLastDataQueryReq) -> thrift::Result<TSExecuteStatementResp>;
   fn request_statement_id(&mut self, session_id: i64) -> thrift::Result<i64>;
   fn create_schema_template(&mut self, req: TSCreateSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn append_schema_template(&mut self, req: TSAppendSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn prune_schema_template(&mut self, req: TSPruneSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn query_schema_template(&mut self, req: TSQueryTemplateReq) -> thrift::Result<TSQueryTemplateResp>;
   fn set_schema_template(&mut self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus>;
   fn unset_schema_template(&mut self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus>;
 }
@@ -5858,6 +6331,87 @@ impl <C: TThriftClient + TTSIServiceSyncClientMarker> TTSIServiceSyncClient for 
       result.ok_or()
     }
   }
+  fn append_schema_template(&mut self, req: TSAppendSchemaTemplateReq) -> thrift::Result<TSStatus> {
+    (
+      {
+        self.increment_sequence_number();
+        let message_ident = TMessageIdentifier::new("appendSchemaTemplate", TMessageType::Call, self.sequence_number());
+        let call_args = TSIServiceAppendSchemaTemplateArgs { req };
+        self.o_prot_mut().write_message_begin(&message_ident)?;
+        call_args.write_to_out_protocol(self.o_prot_mut())?;
+        self.o_prot_mut().write_message_end()?;
+        self.o_prot_mut().flush()
+      }
+    )?;
+    {
+      let message_ident = self.i_prot_mut().read_message_begin()?;
+      verify_expected_sequence_number(self.sequence_number(), message_ident.sequence_number)?;
+      verify_expected_service_call("appendSchemaTemplate", &message_ident.name)?;
+      if message_ident.message_type == TMessageType::Exception {
+        let remote_error = thrift::Error::read_application_error_from_in_protocol(self.i_prot_mut())?;
+        self.i_prot_mut().read_message_end()?;
+        return Err(thrift::Error::Application(remote_error))
+      }
+      verify_expected_message_type(TMessageType::Reply, message_ident.message_type)?;
+      let result = TSIServiceAppendSchemaTemplateResult::read_from_in_protocol(self.i_prot_mut())?;
+      self.i_prot_mut().read_message_end()?;
+      result.ok_or()
+    }
+  }
+  fn prune_schema_template(&mut self, req: TSPruneSchemaTemplateReq) -> thrift::Result<TSStatus> {
+    (
+      {
+        self.increment_sequence_number();
+        let message_ident = TMessageIdentifier::new("pruneSchemaTemplate", TMessageType::Call, self.sequence_number());
+        let call_args = TSIServicePruneSchemaTemplateArgs { req };
+        self.o_prot_mut().write_message_begin(&message_ident)?;
+        call_args.write_to_out_protocol(self.o_prot_mut())?;
+        self.o_prot_mut().write_message_end()?;
+        self.o_prot_mut().flush()
+      }
+    )?;
+    {
+      let message_ident = self.i_prot_mut().read_message_begin()?;
+      verify_expected_sequence_number(self.sequence_number(), message_ident.sequence_number)?;
+      verify_expected_service_call("pruneSchemaTemplate", &message_ident.name)?;
+      if message_ident.message_type == TMessageType::Exception {
+        let remote_error = thrift::Error::read_application_error_from_in_protocol(self.i_prot_mut())?;
+        self.i_prot_mut().read_message_end()?;
+        return Err(thrift::Error::Application(remote_error))
+      }
+      verify_expected_message_type(TMessageType::Reply, message_ident.message_type)?;
+      let result = TSIServicePruneSchemaTemplateResult::read_from_in_protocol(self.i_prot_mut())?;
+      self.i_prot_mut().read_message_end()?;
+      result.ok_or()
+    }
+  }
+  fn query_schema_template(&mut self, req: TSQueryTemplateReq) -> thrift::Result<TSQueryTemplateResp> {
+    (
+      {
+        self.increment_sequence_number();
+        let message_ident = TMessageIdentifier::new("querySchemaTemplate", TMessageType::Call, self.sequence_number());
+        let call_args = TSIServiceQuerySchemaTemplateArgs { req };
+        self.o_prot_mut().write_message_begin(&message_ident)?;
+        call_args.write_to_out_protocol(self.o_prot_mut())?;
+        self.o_prot_mut().write_message_end()?;
+        self.o_prot_mut().flush()
+      }
+    )?;
+    {
+      let message_ident = self.i_prot_mut().read_message_begin()?;
+      verify_expected_sequence_number(self.sequence_number(), message_ident.sequence_number)?;
+      verify_expected_service_call("querySchemaTemplate", &message_ident.name)?;
+      if message_ident.message_type == TMessageType::Exception {
+        let remote_error = thrift::Error::read_application_error_from_in_protocol(self.i_prot_mut())?;
+        self.i_prot_mut().read_message_end()?;
+        return Err(thrift::Error::Application(remote_error))
+      }
+      verify_expected_message_type(TMessageType::Reply, message_ident.message_type)?;
+      let result = TSIServiceQuerySchemaTemplateResult::read_from_in_protocol(self.i_prot_mut())?;
+      self.i_prot_mut().read_message_end()?;
+      result.ok_or()
+    }
+  }
   fn set_schema_template(&mut self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus> {
     (
       {
@@ -5957,6 +6511,9 @@ pub trait TSIServiceSyncHandler {
   fn handle_execute_last_data_query(&self, req: TSLastDataQueryReq) -> thrift::Result<TSExecuteStatementResp>;
   fn handle_request_statement_id(&self, session_id: i64) -> thrift::Result<i64>;
   fn handle_create_schema_template(&self, req: TSCreateSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn handle_append_schema_template(&self, req: TSAppendSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn handle_prune_schema_template(&self, req: TSPruneSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn handle_query_schema_template(&self, req: TSQueryTemplateReq) -> thrift::Result<TSQueryTemplateResp>;
   fn handle_set_schema_template(&self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus>;
   fn handle_unset_schema_template(&self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus>;
 }
@@ -6084,6 +6641,15 @@ impl <H: TSIServiceSyncHandler> TSIServiceSyncProcessor<H> {
   }
   fn process_create_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     TTSIServiceProcessFunctions::process_create_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
+  }
+  fn process_append_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    TTSIServiceProcessFunctions::process_append_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
+  }
+  fn process_prune_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    TTSIServiceProcessFunctions::process_prune_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
+  }
+  fn process_query_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    TTSIServiceProcessFunctions::process_query_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
   }
   fn process_set_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     TTSIServiceProcessFunctions::process_set_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
@@ -7502,6 +8068,117 @@ impl TTSIServiceProcessFunctions {
       },
     }
   }
+  pub fn process_append_schema_template<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let args = TSIServiceAppendSchemaTemplateArgs::read_from_in_protocol(i_prot)?;
+    match handler.handle_append_schema_template(args.req) {
+      Ok(handler_return) => {
+        let message_ident = TMessageIdentifier::new("appendSchemaTemplate", TMessageType::Reply, incoming_sequence_number);
+        o_prot.write_message_begin(&message_ident)?;
+        let ret = TSIServiceAppendSchemaTemplateResult { result_value: Some(handler_return) };
+        ret.write_to_out_protocol(o_prot)?;
+        o_prot.write_message_end()?;
+        o_prot.flush()
+      },
+      Err(e) => {
+        match e {
+          thrift::Error::Application(app_err) => {
+            let message_ident = TMessageIdentifier::new("appendSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&app_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+          _ => {
+            let ret_err = {
+              ApplicationError::new(
+                ApplicationErrorKind::Unknown,
+                e.to_string()
+              )
+            };
+            let message_ident = TMessageIdentifier::new("appendSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&ret_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+        }
+      },
+    }
+  }
+  pub fn process_prune_schema_template<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let args = TSIServicePruneSchemaTemplateArgs::read_from_in_protocol(i_prot)?;
+    match handler.handle_prune_schema_template(args.req) {
+      Ok(handler_return) => {
+        let message_ident = TMessageIdentifier::new("pruneSchemaTemplate", TMessageType::Reply, incoming_sequence_number);
+        o_prot.write_message_begin(&message_ident)?;
+        let ret = TSIServicePruneSchemaTemplateResult { result_value: Some(handler_return) };
+        ret.write_to_out_protocol(o_prot)?;
+        o_prot.write_message_end()?;
+        o_prot.flush()
+      },
+      Err(e) => {
+        match e {
+          thrift::Error::Application(app_err) => {
+            let message_ident = TMessageIdentifier::new("pruneSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&app_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+          _ => {
+            let ret_err = {
+              ApplicationError::new(
+                ApplicationErrorKind::Unknown,
+                e.to_string()
+              )
+            };
+            let message_ident = TMessageIdentifier::new("pruneSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&ret_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+        }
+      },
+    }
+  }
+  pub fn process_query_schema_template<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let args = TSIServiceQuerySchemaTemplateArgs::read_from_in_protocol(i_prot)?;
+    match handler.handle_query_schema_template(args.req) {
+      Ok(handler_return) => {
+        let message_ident = TMessageIdentifier::new("querySchemaTemplate", TMessageType::Reply, incoming_sequence_number);
+        o_prot.write_message_begin(&message_ident)?;
+        let ret = TSIServiceQuerySchemaTemplateResult { result_value: Some(handler_return) };
+        ret.write_to_out_protocol(o_prot)?;
+        o_prot.write_message_end()?;
+        o_prot.flush()
+      },
+      Err(e) => {
+        match e {
+          thrift::Error::Application(app_err) => {
+            let message_ident = TMessageIdentifier::new("querySchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&app_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+          _ => {
+            let ret_err = {
+              ApplicationError::new(
+                ApplicationErrorKind::Unknown,
+                e.to_string()
+              )
+            };
+            let message_ident = TMessageIdentifier::new("querySchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&ret_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+        }
+      },
+    }
+  }
   pub fn process_set_schema_template<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     let args = TSIServiceSetSchemaTemplateArgs::read_from_in_protocol(i_prot)?;
     match handler.handle_set_schema_template(args.req) {
@@ -7695,6 +8372,15 @@ impl <H: TSIServiceSyncHandler> TProcessor for TSIServiceSyncProcessor<H> {
       },
       "createSchemaTemplate" => {
         self.process_create_schema_template(message_ident.sequence_number, i_prot, o_prot)
+      },
+      "appendSchemaTemplate" => {
+        self.process_append_schema_template(message_ident.sequence_number, i_prot, o_prot)
+      },
+      "pruneSchemaTemplate" => {
+        self.process_prune_schema_template(message_ident.sequence_number, i_prot, o_prot)
+      },
+      "querySchemaTemplate" => {
+        self.process_query_schema_template(message_ident.sequence_number, i_prot, o_prot)
       },
       "setSchemaTemplate" => {
         self.process_set_schema_template(message_ident.sequence_number, i_prot, o_prot)
@@ -9633,8 +10319,8 @@ impl TSIServiceDeleteTimeseriesArgs {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_83 = i_prot.read_string()?;
-            val.push(list_elem_83);
+            let list_elem_89 = i_prot.read_string()?;
+            val.push(list_elem_89);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -9765,8 +10451,8 @@ impl TSIServiceDeleteStorageGroupsArgs {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_84 = i_prot.read_string()?;
-            val.push(list_elem_84);
+            let list_elem_90 = i_prot.read_string()?;
+            val.push(list_elem_90);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -11969,6 +12655,339 @@ impl TSIServiceCreateSchemaTemplateResult {
           ApplicationError::new(
             ApplicationErrorKind::MissingResult,
             "no result received for TSIServiceCreateSchemaTemplate"
+          )
+        )
+      )
+    }
+  }
+}
+
+//
+// TSIServiceAppendSchemaTemplateArgs
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceAppendSchemaTemplateArgs {
+  req: TSAppendSchemaTemplateReq,
+}
+
+impl TSIServiceAppendSchemaTemplateArgs {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceAppendSchemaTemplateArgs> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSAppendSchemaTemplateReq> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSAppendSchemaTemplateReq::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSIServiceAppendSchemaTemplateArgs.req", &f_1)?;
+    let ret = TSIServiceAppendSchemaTemplateArgs {
+      req: f_1.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("appendSchemaTemplate_args");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("req", TType::Struct, 1))?;
+    self.req.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSIServiceAppendSchemaTemplateResult
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceAppendSchemaTemplateResult {
+  result_value: Option<TSStatus>,
+}
+
+impl TSIServiceAppendSchemaTemplateResult {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceAppendSchemaTemplateResult> {
+    i_prot.read_struct_begin()?;
+    let mut f_0: Option<TSStatus> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        0 => {
+          let val = TSStatus::read_from_in_protocol(i_prot)?;
+          f_0 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    let ret = TSIServiceAppendSchemaTemplateResult {
+      result_value: f_0,
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSIServiceAppendSchemaTemplateResult");
+    o_prot.write_struct_begin(&struct_ident)?;
+    if let Some(ref fld_var) = self.result_value {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result_value", TType::Struct, 0))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+  fn ok_or(self) -> thrift::Result<TSStatus> {
+    if self.result_value.is_some() {
+      Ok(self.result_value.unwrap())
+    } else {
+      Err(
+        thrift::Error::Application(
+          ApplicationError::new(
+            ApplicationErrorKind::MissingResult,
+            "no result received for TSIServiceAppendSchemaTemplate"
+          )
+        )
+      )
+    }
+  }
+}
+
+//
+// TSIServicePruneSchemaTemplateArgs
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServicePruneSchemaTemplateArgs {
+  req: TSPruneSchemaTemplateReq,
+}
+
+impl TSIServicePruneSchemaTemplateArgs {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServicePruneSchemaTemplateArgs> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSPruneSchemaTemplateReq> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSPruneSchemaTemplateReq::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSIServicePruneSchemaTemplateArgs.req", &f_1)?;
+    let ret = TSIServicePruneSchemaTemplateArgs {
+      req: f_1.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("pruneSchemaTemplate_args");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("req", TType::Struct, 1))?;
+    self.req.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSIServicePruneSchemaTemplateResult
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServicePruneSchemaTemplateResult {
+  result_value: Option<TSStatus>,
+}
+
+impl TSIServicePruneSchemaTemplateResult {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServicePruneSchemaTemplateResult> {
+    i_prot.read_struct_begin()?;
+    let mut f_0: Option<TSStatus> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        0 => {
+          let val = TSStatus::read_from_in_protocol(i_prot)?;
+          f_0 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    let ret = TSIServicePruneSchemaTemplateResult {
+      result_value: f_0,
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSIServicePruneSchemaTemplateResult");
+    o_prot.write_struct_begin(&struct_ident)?;
+    if let Some(ref fld_var) = self.result_value {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result_value", TType::Struct, 0))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+  fn ok_or(self) -> thrift::Result<TSStatus> {
+    if self.result_value.is_some() {
+      Ok(self.result_value.unwrap())
+    } else {
+      Err(
+        thrift::Error::Application(
+          ApplicationError::new(
+            ApplicationErrorKind::MissingResult,
+            "no result received for TSIServicePruneSchemaTemplate"
+          )
+        )
+      )
+    }
+  }
+}
+
+//
+// TSIServiceQuerySchemaTemplateArgs
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceQuerySchemaTemplateArgs {
+  req: TSQueryTemplateReq,
+}
+
+impl TSIServiceQuerySchemaTemplateArgs {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceQuerySchemaTemplateArgs> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSQueryTemplateReq> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSQueryTemplateReq::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSIServiceQuerySchemaTemplateArgs.req", &f_1)?;
+    let ret = TSIServiceQuerySchemaTemplateArgs {
+      req: f_1.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("querySchemaTemplate_args");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("req", TType::Struct, 1))?;
+    self.req.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSIServiceQuerySchemaTemplateResult
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceQuerySchemaTemplateResult {
+  result_value: Option<TSQueryTemplateResp>,
+}
+
+impl TSIServiceQuerySchemaTemplateResult {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceQuerySchemaTemplateResult> {
+    i_prot.read_struct_begin()?;
+    let mut f_0: Option<TSQueryTemplateResp> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        0 => {
+          let val = TSQueryTemplateResp::read_from_in_protocol(i_prot)?;
+          f_0 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    let ret = TSIServiceQuerySchemaTemplateResult {
+      result_value: f_0,
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSIServiceQuerySchemaTemplateResult");
+    o_prot.write_struct_begin(&struct_ident)?;
+    if let Some(ref fld_var) = self.result_value {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result_value", TType::Struct, 0))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+  fn ok_or(self) -> thrift::Result<TSQueryTemplateResp> {
+    if self.result_value.is_some() {
+      Ok(self.result_value.unwrap())
+    } else {
+      Err(
+        thrift::Error::Application(
+          ApplicationError::new(
+            ApplicationErrorKind::MissingResult,
+            "no result received for TSIServiceQuerySchemaTemplate"
           )
         )
       )
