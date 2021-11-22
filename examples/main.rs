@@ -4,13 +4,13 @@ use thrift::Error;
 use iotdb::common::{Compressor, DataType, Encoding};
 use iotdb::{Config, Session};
 
-fn main() -> Result<(), ThriftError> {
+fn main() -> Result<(), Error> {
     let config = Config::new()
         .endpoint("127.0.0.1", "6667")
         .user("root")
         .password("root")
         .zone_id("UTC+8")
-        .debug(true)
+        // .debug(true)
         .build();
 
     // open session
