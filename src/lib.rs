@@ -989,13 +989,12 @@ impl Session {
 
     /// execute batch statement and return a DataSets
     pub fn exec_batch(&mut self, statements: Vec<String>) {
-        let req = TSExecuteBatchStatementReq::new(self.session_id, statements.clone());
+        let req = TSExecuteBatchStatementReq::new(self.session_id, statements);
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
                 if self.is_success(&status) {
                     info!(
-                        "Execute statements {:?}, message: {:?}",
-                        statements,
+                        "Execute statements {:?}",
                         status.message.unwrap_or_else(|| "None".to_string())
                     );
                 } else {
