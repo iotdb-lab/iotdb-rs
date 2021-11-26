@@ -2,10 +2,10 @@ use chrono::Local;
 use thrift::Error;
 
 use iotdb::common::{Compressor, DataType, Encoding};
-use iotdb::{Config, Session};
+use iotdb::{ConfigBuilder, Session};
 
 fn main() -> Result<(), Error> {
-    let config = Config::new()
+    let config = ConfigBuilder::new()
         .endpoint("127.0.0.1", "6667")
         .user("root")
         .password("root")

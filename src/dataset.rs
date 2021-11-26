@@ -107,7 +107,7 @@ impl DataSet {
         fetch_size: i32,
         resp: TSExecuteStatementResp,
     ) -> DataSet {
-        debug!("{:?}", resp);
+        debug!("{:#?}", resp);
         // set data_types
         let data_types: Vec<DataType> = match resp.data_type_list.clone() {
             None => vec![],
@@ -226,7 +226,7 @@ impl DataSet {
 
     pub fn show(&mut self) {
         let mut batch = self.record_batch.clone();
-        debug!("{:?}", &batch);
+        debug!("{:#?}", &batch);
 
         let mut table: Table = Table::new();
         table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);

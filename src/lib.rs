@@ -32,10 +32,10 @@
 //! use thrift::Error;
 //!
 //! use iotdb::common::{Compressor, DataType, Encoding};
-//! use iotdb::{Config, Session};
+//! use iotdb::{ConfigBuilder, Session};
 //!
 //! fn main() -> Result<(), Error> {
-//!     let config = Config::new()
+//!  let config = ConfigBuilder::new()
 //!         .endpoint("127.0.0.1", "6667")
 //!         .user("root")
 //!         .password("root")
@@ -104,6 +104,9 @@ pub mod rpc;
 pub use chrono;
 pub use thrift;
 
+#[macro_use]
+extern crate prettytable;
+
 use crate::common::{Compressor, DataType, Encoding, Logger};
 use crate::dataset::DataSet;
 use crate::rpc::{
@@ -115,8 +118,8 @@ use crate::rpc::{
 };
 use chrono::{Local, Utc};
 use log::{debug, error, info};
+use simplelog::*;
 use std::collections::BTreeMap;
-use std::env;
 use std::net::TcpStream;
 use std::str::FromStr;
 use thrift::protocol::{
@@ -126,13 +129,9 @@ use thrift::protocol::{
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
 use thrift::{ApplicationErrorKind, Error as ThriftError, ProtocolErrorKind};
 
-#[macro_use]
-extern crate prettytable;
-
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
 const SUCCESS_CODE: i32 = 200;
-const LOG_LEVER_KEY: &str = "IOTDB_LOG_LEVER";
 
 #[derive(Clone, Debug)]
 pub struct Endpoint {
@@ -186,7 +185,7 @@ pub struct Config {
     pub timeout: i64,
     pub fetch_size: i32,
     pub endpoint: Endpoint,
-    pub log_level: String,
+    pub log_level: LevelFilter,
     pub rpc_compaction: bool,
     pub protocol_version: TSProtocolVersion,
     pub enable_redirect_query: bool,
@@ -202,7 +201,7 @@ impl Default for Config {
             timeout: 3000,
             time_zone: format!("{}{}", Utc::now().offset(), Local::now().offset()),
             fetch_size: 1024,
-            log_level: env::var(LOG_LEVER_KEY).unwrap_or_else(|_| "info".to_string()),
+            log_level: LevelFilter::Info,
             rpc_compaction: false,
             protocol_version: TSProtocolVersion::IOTDB_SERVICE_PROTOCOL_V3,
             enable_redirect_query: false,
@@ -211,82 +210,88 @@ impl Default for Config {
     }
 }
 
-impl Config {
+pub struct ConfigBuilder(Config);
+
+impl Default for ConfigBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ConfigBuilder {
     pub fn new() -> Self {
-        let default = Config::default();
-        debug!("{:?}", default);
-        default
+        ConfigBuilder(Config::default())
     }
 
     pub fn endpoint(&mut self, host: &str, port: &str) -> &mut Self {
-        self.endpoint = Endpoint::new(host, port);
+        self.0.endpoint = Endpoint::new(host, port);
         self
     }
 
     pub fn user(&mut self, user: &str) -> &mut Self {
-        self.user = user.to_string();
+        self.0.user = user.to_string();
         self
     }
 
     pub fn password(&mut self, password: &str) -> &mut Self {
-        self.password = password.to_string();
+        self.0.password = password.to_string();
         self
     }
 
     pub fn timeout(&mut self, timeout: i64) -> &mut Self {
-        self.timeout = timeout;
+        self.0.timeout = timeout;
         self
     }
 
     pub fn time_zone(&mut self, time_zone: &str) -> &mut Self {
-        self.time_zone = time_zone.to_uppercase();
+        self.0.time_zone = time_zone.to_uppercase();
         self
     }
 
     pub fn fetch_size(&mut self, fetch_size: i32) -> &mut Self {
-        self.fetch_size = fetch_size;
+        self.0.fetch_size = fetch_size;
         self
     }
 
-    pub fn log_level(&mut self, level: &str) -> &mut Self {
-        self.log_level = level.to_string();
+    pub fn log_level(&mut self, level: LevelFilter) -> &mut Self {
+        self.0.log_level = level;
         self
     }
 
     pub fn debug(&mut self, debug: bool) -> &mut Self {
         if debug {
-            self.log_level = "debug".to_string();
+            self.0.log_level = LevelFilter::Debug
         }
         self
     }
 
     pub fn enable_rpc_compaction(&mut self) -> &mut Self {
-        self.rpc_compaction = true;
+        self.0.rpc_compaction = true;
         self
     }
 
-    pub fn protocol_version(&mut self, protocol_version: TSProtocolVersion) -> &mut Self {
-        self.protocol_version = protocol_version;
+    pub fn set_protocol_version(&mut self, protocol_version: TSProtocolVersion) -> &mut Self {
+        self.0.protocol_version = protocol_version;
         self
     }
 
     pub fn enable_redirect_query(&mut self, enable_redirect_query: bool) -> &mut Self {
-        self.enable_redirect_query = enable_redirect_query;
+        self.0.enable_redirect_query = enable_redirect_query;
         self
     }
 
-    pub fn set(&mut self, key: &str, value: &str) -> &mut Self {
-        self.config_map.insert(key.to_string(), value.to_string());
+    pub fn set_config(&mut self, key: &str, value: &str) -> &mut Self {
+        self.0.config_map.insert(key.to_string(), value.to_string());
         self
     }
 
-    pub fn set_map(&mut self, map: &mut BTreeMap<String, String>) -> &mut Self {
-        self.config_map.append(map);
+    pub fn set_config_map(&mut self, map: &mut BTreeMap<String, String>) -> &mut Self {
+        self.0.config_map.append(map);
         self
     }
 
-    pub fn build(&self) -> Self {
-        self.clone()
+    pub fn build(&self) -> Config {
+        self.0.clone()
     }
 }
 
@@ -300,21 +305,14 @@ pub struct Session {
 
 impl Session {
     pub fn new(config: Config) -> Session {
-        Logger::new(config.log_level.as_str(), None).init().unwrap();
-        debug!("{:?}", &config);
+        Logger::init(config.log_level);
+        debug!("{:#?}", &config);
 
-        let stream: TcpStream = match TcpStream::connect(config.endpoint.to_string()) {
-            Ok(tcp_stream) => {
-                debug!("TcpStream connect to {:?}", config.endpoint);
-                tcp_stream
-            }
-            Err(error) => {
-                panic!(
-                    "TcpStream connect to {:?} failed, reason: {}",
-                    config.endpoint, error
-                );
-            }
-        };
+        let stream = TcpStream::connect(config.endpoint.to_string()).unwrap_or_else(|error| {
+            panic!("{:?}, reason: {:?}", config.endpoint, error.to_string())
+        });
+        debug!("TcpStream connect to {:?}", config.endpoint);
+
         let channel = TTcpChannel::with_stream(stream);
         let (channel_in, channel_out) = channel.split().unwrap();
         let (transport_in, transport_out) = (

@@ -1,6 +1,4 @@
-use fern::Dispatch;
-use std::io;
-use std::path::PathBuf;
+use simplelog::*;
 
 /// IotDB datatype enum
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -209,90 +207,17 @@ impl Into<i32> for Compressor {
     }
 }
 
-/// Logger
-pub struct Logger {
-    level: String,
-    log_path: Option<PathBuf>,
-}
-
-impl Default for Logger {
-    fn default() -> Self {
-        Self {
-            level: "info".to_string(),
-            log_path: None,
-        }
-    }
-}
+/// A tiny Logger
+pub struct Logger {}
 
 impl Logger {
-    pub fn new(level: &str, log_path: Option<PathBuf>) -> Self {
-        Self {
-            level: level.to_string(),
-            log_path,
-        }
-    }
-
-    pub fn init(&mut self) -> Result<Logger, fern::InitError> {
-        let mut base_config = fern::Dispatch::new();
-        let log_path = self.log_path.clone();
-
-        base_config = match self.level.as_str() {
-            "trace" => base_config
-                .level(log::LevelFilter::Trace)
-                .level_for("overly-verbose-target", log::LevelFilter::Trace),
-            "debug" => base_config
-                .level(log::LevelFilter::Debug)
-                .level_for("overly-verbose-target", log::LevelFilter::Debug),
-            "info" => base_config
-                .level(log::LevelFilter::Info)
-                .level_for("overly-verbose-target", log::LevelFilter::Info),
-            "warn" => base_config
-                .level(log::LevelFilter::Warn)
-                .level_for("overly-verbose-target", log::LevelFilter::Warn),
-            "error" => base_config
-                .level(log::LevelFilter::Error)
-                .level_for("overly-verbose-target", log::LevelFilter::Error),
-            _ => base_config
-                .level(log::LevelFilter::Error)
-                .level_for("overly-verbose-target", log::LevelFilter::Error),
-        };
-
-        // Separate file config so we can include year, month and day in file logs
-        let file_config: Dispatch = match log_path.clone() {
-            None => fern::Dispatch::new(),
-            Some(path_buf) => fern::Dispatch::new()
-                .format(|out, message, record| {
-                    out.finish(format_args!(
-                        "[{}][{}][{}] {}",
-                        chrono::Local::now().format("%+"),
-                        record.target(),
-                        record.level(),
-                        message
-                    ))
-                })
-                .chain(fern::log_file(path_buf.as_path()).unwrap()),
-        };
-
-        let stdout_config = fern::Dispatch::new()
-            .format(|out, message, record| {
-                out.finish(format_args!(
-                    "[{}][{}][{}] {}",
-                    chrono::Local::now().format("%+"),
-                    record.target(),
-                    record.level(),
-                    message
-                ))
-            })
-            .chain(io::stdout());
-
-        base_config
-            .chain(file_config)
-            .chain(stdout_config)
-            .apply()?;
-
-        Ok(Self {
-            level: self.level.clone(),
-            log_path,
-        })
+    pub fn init(level: LevelFilter) {
+        CombinedLogger::init(vec![TermLogger::new(
+            level,
+            Default::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        )])
+        .unwrap();
     }
 }
