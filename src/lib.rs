@@ -114,7 +114,7 @@ use crate::rpc::{
     TSStatus, TTSIServiceSyncClient,
 };
 use chrono::{Local, Utc};
-use log::{debug, error};
+use log::{debug, error, info};
 use std::collections::BTreeMap;
 use std::env;
 use std::net::TcpStream;
@@ -995,7 +995,7 @@ impl Session {
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
                 if self.is_success(&status) {
-                    debug!(
+                    info!(
                         "Execute statements {:?}, message: {:?}",
                         statements,
                         status.message.unwrap_or_else(|| "None".to_string())
