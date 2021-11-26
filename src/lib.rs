@@ -62,36 +62,36 @@
 //!         Compressor::default(),
 //!     )?;
 //!
+//!     let now = Local::now().timestamp();
 //!     session.sql(
 //!         format!(
 //!             "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},true)",
-//!             Local::now().timestamp()
+//!             now
 //!         )
-//!             .as_str(),
+//!         .as_str(),
 //!     )?;
 //!     session.sql(
 //!         format!(
 //!             "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},false)",
-//!             Local::now().timestamp()
+//!             now + 1000
 //!         )
-//!             .as_str(),
+//!         .as_str(),
 //!     )?;
 //!     session.sql(
 //!         format!(
 //!             "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},false,18.36)",
-//!             Local::now().timestamp()
+//!             now + 2000
 //!         )
-//!             .as_str(),
+//!         .as_str(),
 //!     )?;
 //!     session.sql(
 //!         format!(
-//!            "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},true,32.23)",
-//!            Local::now().timestamp()
+//!             "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},true,32.23)",
+//!             now + 3000
 //!         )
-//!             .as_str(),
+//!         .as_str(),
 //!     )?;
 //!    session.sql("select * from root.ln")?.show();
-//!
 //!    session.close()?;
 //!
 //!   Ok(())
@@ -182,7 +182,7 @@ impl ToString for Endpoint {
 pub struct Config {
     pub user: String,
     pub password: String,
-    pub zone_id: String,
+    pub time_zone: String,
     pub timeout: i64,
     pub fetch_size: i32,
     pub endpoint: Endpoint,
@@ -200,7 +200,7 @@ impl Default for Config {
             user: "root".to_string(),
             password: "root".to_string(),
             timeout: 3000,
-            zone_id: format!("{}{}", Utc::now().offset(), Local::now().offset()),
+            time_zone: format!("{}{}", Utc::now().offset(), Local::now().offset()),
             fetch_size: 1024,
             log_level: env::var(LOG_LEVER_KEY).unwrap_or_else(|_| "info".to_string()),
             rpc_compaction: false,
@@ -238,8 +238,8 @@ impl Config {
         self
     }
 
-    pub fn zone_id(&mut self, zone_id: &str) -> &mut Self {
-        self.zone_id = zone_id.to_uppercase();
+    pub fn time_zone(&mut self, time_zone: &str) -> &mut Self {
+        self.time_zone = time_zone.to_uppercase();
         self
     }
 
@@ -346,7 +346,7 @@ impl Session {
     pub fn open(mut self) -> Result<Session, ThriftError> {
         let open_req = TSOpenSessionReq::new(
             self.config.protocol_version,
-            self.config.zone_id.clone(),
+            self.config.time_zone.clone(),
             self.config.user.clone(),
             self.config.password.clone(),
             self.config.config_map.clone(),

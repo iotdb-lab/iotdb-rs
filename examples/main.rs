@@ -9,7 +9,7 @@ fn main() -> Result<(), Error> {
         .endpoint("127.0.0.1", "6667")
         .user("root")
         .password("root")
-        .zone_id("UTC+8")
+        .time_zone("UTC+8")
         // .debug(true)
         .build();
 
@@ -32,31 +32,32 @@ fn main() -> Result<(), Error> {
         Compressor::default(),
     )?;
 
+    let now = Local::now().timestamp_millis();
     session.sql(
         format!(
             "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},true)",
-            Local::now().timestamp()
+            now
         )
         .as_str(),
     )?;
     session.sql(
         format!(
             "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},false)",
-            Local::now().timestamp()
+            now + 1000
         )
         .as_str(),
     )?;
     session.sql(
         format!(
             "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},false,18.36)",
-            Local::now().timestamp()
+            now + 2000
         )
         .as_str(),
     )?;
     session.sql(
         format!(
             "INSERT INTO root.ln.wf01.wt01(timestamp,status,temperature) values({},true,32.23)",
-            Local::now().timestamp()
+            now + 3000
         )
         .as_str(),
     )?;
