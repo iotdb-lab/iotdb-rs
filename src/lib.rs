@@ -994,7 +994,7 @@ impl Session {
         let req = TSExecuteBatchStatementReq::new(self.session_id, statements.clone());
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
-                if !self.is_success(&status) {
+                if self.is_success(&status) {
                     debug!(
                         "Execute statements {:?}, message: {:?}",
                         statements,
