@@ -212,12 +212,19 @@ pub struct Logger {}
 
 impl Logger {
     pub fn init(level: LevelFilter) {
+        let logger = CombinedLogger::init(vec![TermLogger::new(
+            LevelFilter::Info,
+            Default::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        )])
+        .unwrap();
         CombinedLogger::init(vec![TermLogger::new(
             level,
             Default::default(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         )])
-        .unwrap();
+        .unwrap_or(logger);
     }
 }
