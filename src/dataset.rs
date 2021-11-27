@@ -254,28 +254,28 @@ impl DataSet {
 
                 row.fields.iter().for_each(|field| match field.data_type {
                     DataType::BOOLEAN => match field.bool_value {
-                        None => value_cells.push(cell!("null")),
+                        None => value_cells.push(cell!("NaN")),
                         Some(bool_value) => value_cells.push(cell!(bool_value)),
                     },
                     DataType::INT32 => match field.int_value {
-                        None => value_cells.push(cell!("null")),
+                        None => value_cells.push(cell!("NaN")),
                         Some(int_value) => value_cells.push(cell!(int_value)),
                     },
                     DataType::INT64 => match field.long_value {
-                        None => value_cells.push(cell!("null")),
+                        None => value_cells.push(cell!("NaN")),
                         Some(long_value) => value_cells.push(cell!(long_value)),
                     },
                     DataType::FLOAT => match field.float_value {
-                        None => value_cells.push(cell!("null")),
+                        None => value_cells.push(cell!("NaN")),
                         Some(float_value) => value_cells.push(cell!(float_value)),
                     },
                     DataType::DOUBLE => match field.double_value {
-                        None => value_cells.push(cell!("null")),
+                        None => value_cells.push(cell!("NaN")),
                         Some(double_value) => value_cells.push(cell!(double_value)),
                     },
                     DataType::TEXT => {
                         match field.clone().binary_value {
-                            None => value_cells.push(cell!("null")),
+                            None => value_cells.push(cell!("NaN")),
                             Some(binary) => {
                                 value_cells.push(cell!(String::from_utf8(binary).unwrap()))
                             }
