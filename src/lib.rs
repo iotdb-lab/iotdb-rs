@@ -102,9 +102,9 @@ pub mod dataset;
 pub mod rpc;
 
 pub use chrono;
-pub use thrift;
 pub use log;
 pub use simplelog;
+pub use thrift;
 
 #[macro_use]
 extern crate prettytable;
@@ -995,8 +995,7 @@ impl Session {
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
                 if self.is_success(&status) {
-                    info!(
-                        "Execute statements {:?}",
+                    info!("{}",
                         status.message.unwrap_or_else(|| "None".to_string())
                     );
                 } else {
