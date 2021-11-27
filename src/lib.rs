@@ -104,6 +104,7 @@ pub mod rpc;
 pub use chrono;
 pub use thrift;
 pub use log;
+pub use simplelog;
 
 #[macro_use]
 extern crate prettytable;
