@@ -380,7 +380,10 @@ impl Session {
                         Ok(self)
                     }
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
                         status.message.unwrap_or_else(|| "None".to_string()),
@@ -446,7 +449,10 @@ impl Session {
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
                         status.message.unwrap_or_else(|| "None".to_string()),
@@ -481,7 +487,10 @@ impl Session {
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
                         status.message.unwrap_or_else(|| "None".to_string()),
@@ -523,14 +532,17 @@ impl Session {
                                 debug!(
                                     "Creat time series {:?}, message: {:?}",
                                     ts_path,
-                                    status.message.unwrap()
+                                    status.message.unwrap_or_else(|| "None".to_string())
                                 );
                                 Ok(())
                             } else {
-                                error!("{}", status.message.clone().unwrap());
+                                error!(
+                                    "{}",
+                                    status.message.clone().unwrap_or_else(|| "None".to_string())
+                                );
                                 Err(thrift::new_application_error(
                                     ApplicationErrorKind::MissingResult,
-                                    status.message.unwrap(),
+                                    status.message.unwrap_or_else(|| "None".to_string()),
                                 ))
                             }
                         }
@@ -567,14 +579,17 @@ impl Session {
                     debug!(
                         "Creating multiple time series {:?}, message: {:?}",
                         ts_path_vec,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -593,14 +608,17 @@ impl Session {
                     debug!(
                         "Deleting multiple time series {:?}, message: {:?}",
                         path_vec,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -626,7 +644,7 @@ impl Session {
             Ok(resp) => match resp.query_data_set {
                 None => Err(thrift::new_application_error(
                     ApplicationErrorKind::MissingResult,
-                    resp.status.message.unwrap(),
+                    resp.status.message.unwrap_or_else(|| "None".to_string()),
                 )),
                 Some(data_set) => {
                     if data_set.value_list.is_empty() {
@@ -653,14 +671,17 @@ impl Session {
                     debug!(
                         "Delete data from {:?}, message: {:?}",
                         path_vec,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -691,14 +712,17 @@ impl Session {
                     debug!(
                         "Insert string records to device {:?}, message: {:?}",
                         device_ids,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -729,14 +753,17 @@ impl Session {
                     debug!(
                         "Insert one record to device {:?}, message: {:?}",
                         device_id,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -768,14 +795,17 @@ impl Session {
                     debug!(
                         "Testing! insert one record to prefix path {:?}, message: {:?}",
                         prefix_path,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -806,14 +836,17 @@ impl Session {
                     debug!(
                         "Insert multiple records to prefix path {:?}, message: {:?}",
                         prefix_paths,
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -844,14 +877,17 @@ impl Session {
                 if self.is_success(&status) {
                     debug!(
                         "Testing! insert multiple records, message: {:?}",
-                        status.message.unwrap()
+                        status.message.unwrap_or_else(|| "None".to_string())
                     );
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -978,10 +1014,16 @@ impl Session {
                         resp,
                     ))
                 } else {
-                    error!("{}", resp.status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        resp.status
+                            .message
+                            .clone()
+                            .unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap(),
+                        resp.status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -995,11 +1037,9 @@ impl Session {
         match self.client.execute_batch_statement(req) {
             Ok(status) => {
                 if self.is_success(&status) {
-                    info!("{}",
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
+                    info!("{}", status.message.unwrap_or_else(|| "None".to_string()));
                 } else {
-                    error!("{}", status.message.unwrap());
+                    error!("{}", status.message.unwrap_or_else(|| "None".to_string()));
                 }
             }
             Err(error) => error!("{}", error),
@@ -1047,7 +1087,7 @@ impl Session {
                     );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap(),
+                        resp.status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -1085,10 +1125,16 @@ impl Session {
                         resp,
                     ))
                 } else {
-                    error!("{}", resp.status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        resp.status
+                            .message
+                            .clone()
+                            .unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap(),
+                        resp.status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -1124,10 +1170,16 @@ impl Session {
                         resp,
                     ))
                 } else {
-                    error!("{}", resp.status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        resp.status
+                            .message
+                            .clone()
+                            .unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap(),
+                        resp.status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -1143,10 +1195,13 @@ impl Session {
                 if status.code == 200 {
                     Ok(())
                 } else {
-                    error!("{}", status.message.clone().unwrap());
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
                     Err(thrift::new_application_error(
                         ApplicationErrorKind::MissingResult,
-                        status.message.unwrap(),
+                        status.message.unwrap_or_else(|| "None".to_string()),
                     ))
                 }
             }
@@ -1161,7 +1216,10 @@ impl Session {
                 if resp.status.code == 200 {
                     Ok(resp.time_zone)
                 } else {
-                    error!("{}", resp.status.message.unwrap());
+                    error!(
+                        "{}",
+                        resp.status.message.unwrap_or_else(|| "None".to_string())
+                    );
                     Ok(String::new())
                 }
             }
