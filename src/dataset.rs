@@ -176,7 +176,7 @@ impl DataSet {
                         as usize,
                 };
 
-                // is null value
+                // is NaN value
                 let bitmap = bitmap_buffer[col_index][0] as i32;
                 let is_null = ((FLAG >> (row_num % 8)) & (bitmap & 0xFF)) == 0;
 
