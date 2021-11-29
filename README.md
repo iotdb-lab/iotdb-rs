@@ -1,6 +1,7 @@
 <div align="center">
 
 ![logo](iotdb-rs.png)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffrancis-du%2Fiotdb-rs.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffrancis-du%2Fiotdb-rs?ref=badge_shield)
 
 <h1>iotdb-rs</h1>
 <h3>Apache IotDB Client written in Rust</h3>
@@ -139,3 +140,6 @@ cargo run --example main
 ## LICENSE
 
 [Apache License 2.0](LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffrancis-du%2Fiotdb-rs.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffrancis-du%2Fiotdb-rs?ref=badge_large)
