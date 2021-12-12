@@ -16,7 +16,7 @@
 
 ---
 
-![Alt](https://repobeats.axiom.co/api/embed/15bcb8c6b0f3a63838c7ca62234867b58ec60b28.svg "Repobeats analytics image")
+[![Alt](https://repobeats.axiom.co/api/embed/15bcb8c6b0f3a63838c7ca62234867b58ec60b28.svg "Repobeats analytics image")](https://github.com/iotdb-lab/iotdb-rs/pulse)
 
 ## Overview
 
