@@ -3,9 +3,9 @@
 //! [![Crates.io](https://img.shields.io/crates/v/iotdb?style=flat-square&color=%23E5531A)](https://crates.io/crates/iotdb)
 //! [![Api Docs](https://img.shields.io/badge/Api-Doc-a94064?style=flat-square&color=%23E5531A)](https://docs.rs/iotdb)
 //! [![Crates.io](https://img.shields.io/crates/d/iotdb?style=flat-square&color=%23E5531A)](https://crates.io/crates/iotdb)
-//! [![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square&color=%23E5531A)](https://github.com/francis-du/iotdb-rs/blob/main/LICENSE)
-//! [![Rust Build](https://img.shields.io/github/workflow/status/francis-du/iotdb-rs/cargo-test?label=build&style=flat-square)](https://github.com/francis-du/iotdb-rs/actions?query=workflow%3Acargo-test)
-//! [![Crates Publish](https://img.shields.io/github/workflow/status/francis-du/iotdb-rs/cargo-publish?label=publish&style=flat-square)](https://github.com/francis-du/iotdb-rs/actions?query=workflow%3Acargo-publish)
+//! [![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square&color=%23E5531A)](https://github.com/iotdb-lab/iotdb-rs/blob/main/LICENSE)
+//! [![Rust Build](https://img.shields.io/github/workflow/status/iotdb-lab/iotdb-rs/cargo-test?label=build&style=flat-square)](https://github.com/francis-du/iotdb-lab/actions?query=workflow%3Acargo-test)
+//! [![Crates Publish](https://img.shields.io/github/workflow/status/iotdb-lab/iotdb-rs/cargo-publish?label=publish&style=flat-square)](https://github.com/iotdb-lab/iotdb-rs/actions?query=workflow%3Acargo-publish)
 //!
 //! Apache IotDB Client written in Rust
 //!
