@@ -1,11 +1,15 @@
-use crate::common::DataType;
-use crate::rpc::TSExecuteStatementResp;
+use std::io::Cursor;
+
 use byteorder::{BigEndian, ReadBytesExt};
 use chrono::{DateTime, Local, TimeZone};
 use log::debug;
+use polars::prelude::*;
+use polars::prelude::{DataFrame, Series};
 use prettytable::Row as PrettyRow;
 use prettytable::{Cell, Table};
-use std::io::Cursor;
+
+use crate::rpc::TSExecuteStatementResp;
+use crate::DataType;
 
 #[derive(Clone, Debug)]
 pub struct Field {
@@ -32,19 +36,10 @@ impl Field {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ValueRow {
     timestamp: i64,
     fields: Vec<Field>,
-}
-
-impl Default for ValueRow {
-    fn default() -> Self {
-        Self {
-            timestamp: 0,
-            fields: vec![],
-        }
-    }
 }
 
 impl ValueRow {
@@ -92,21 +87,21 @@ impl RecordBatch {
 
 #[derive(Clone, Debug)]
 pub struct DataSet {
-    statement: String,
-    session_id: i64,
-    fetch_size: i32,
-    query_id: i64,
     record_batch: RecordBatch,
     ignore_time_stamp: Option<bool>,
 }
 
+impl Default for DataSet {
+    fn default() -> Self {
+        Self {
+            record_batch: RecordBatch::default(),
+            ignore_time_stamp: None,
+        }
+    }
+}
+
 impl DataSet {
-    pub(crate) fn new(
-        statement: String,
-        session_id: i64,
-        fetch_size: i32,
-        resp: TSExecuteStatementResp,
-    ) -> DataSet {
+    pub(crate) fn new(resp: TSExecuteStatementResp) -> DataSet {
         debug!("{:#?}", resp);
         // set data_types
         let data_types: Vec<DataType> = match resp.data_type_list.clone() {
@@ -128,10 +123,6 @@ impl DataSet {
         };
 
         Self {
-            statement,
-            session_id,
-            fetch_size,
-            query_id: resp.query_id.unwrap(),
             record_batch,
             ignore_time_stamp: resp.ignore_time_stamp,
         }
@@ -222,6 +213,12 @@ impl DataSet {
         }
 
         RecordBatch::new(columns, values)
+    }
+
+    pub fn to_df(&self) -> Result<DataFrame> {
+        let columns: Vec<Series> = Vec::new();
+
+        DataFrame::new(columns)
     }
 
     pub fn show(&mut self) {

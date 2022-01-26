@@ -97,43 +97,254 @@
 //!   Ok(())
 //! }
 //! ```
-pub mod common;
-pub mod dataset;
-pub mod rpc;
-
-pub use chrono;
-pub use log;
-pub use simplelog;
-pub use thrift;
-
 #[macro_use]
 extern crate prettytable;
 
-use crate::common::{Compressor, DataType, Encoding, Logger};
-use crate::dataset::DataSet;
-use crate::rpc::{
-    TSCancelOperationReq, TSCloseSessionReq, TSCreateMultiTimeseriesReq, TSCreateTimeseriesReq,
-    TSDeleteDataReq, TSExecuteBatchStatementReq, TSExecuteStatementReq, TSIServiceSyncClient,
-    TSInsertRecordReq, TSInsertRecordsReq, TSInsertStringRecordsReq, TSInsertTabletReq,
-    TSInsertTabletsReq, TSOpenSessionReq, TSProtocolVersion, TSRawDataQueryReq, TSSetTimeZoneReq,
-    TSStatus, TTSIServiceSyncClient,
-};
-use chrono::{Local, Utc};
-use log::{debug, error, info};
-use simplelog::*;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 use std::str::FromStr;
+
+use anyhow::bail;
+pub use chrono;
+use chrono::{Local, Utc};
+pub use log;
+use log::{debug, error, info};
+use mimalloc::MiMalloc;
+pub use polars;
+pub use thrift;
 use thrift::protocol::{
     TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
     TInputProtocol, TOutputProtocol,
 };
 use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
-use thrift::{ApplicationErrorKind, Error as ThriftError, ProtocolErrorKind};
+
+use crate::ds::DataSet;
+pub use crate::ds::*;
+use crate::rpc::{
+    TSCancelOperationReq, TSCloseSessionReq, TSCreateMultiTimeseriesReq, TSCreateTimeseriesReq,
+    TSDeleteDataReq, TSExecuteBatchStatementReq, TSExecuteStatementReq, TSExecuteStatementResp,
+    TSIServiceSyncClient, TSInsertRecordReq, TSInsertRecordsReq, TSInsertStringRecordsReq,
+    TSInsertTabletReq, TSInsertTabletsReq, TSOpenSessionReq, TSOpenSessionResp, TSProtocolVersion,
+    TSRawDataQueryReq, TSSetTimeZoneReq, TSStatus, TTSIServiceSyncClient,
+};
+
+mod ds;
+mod errors;
+mod rpc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
 const SUCCESS_CODE: i32 = 200;
+
+/// IotDB datatype enum
+#[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum DataType {
+    BOOLEAN,
+    INT32,
+    INT64,
+    FLOAT,
+    DOUBLE,
+    TEXT,
+}
+
+impl From<&String> for DataType {
+    fn from(value: &String) -> Self {
+        match value.as_str() {
+            "BOOLEAN" => DataType::BOOLEAN,
+            "INT32" => DataType::INT32,
+            "INT64" => DataType::INT64,
+            "FLOAT" => DataType::FLOAT,
+            "DOUBLE" => DataType::DOUBLE,
+            "TEXT" => DataType::TEXT,
+            _ => panic!("This '{}' data type doesn't exist", value),
+        }
+    }
+}
+
+impl From<&str> for DataType {
+    fn from(value: &str) -> Self {
+        match value {
+            "BOOLEAN" => DataType::BOOLEAN,
+            "INT32" => DataType::INT32,
+            "INT64" => DataType::INT64,
+            "FLOAT" => DataType::FLOAT,
+            "DOUBLE" => DataType::DOUBLE,
+            "TEXT" => DataType::TEXT,
+            _ => panic!("This '{}' data type doesn't exist", value),
+        }
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<i32> for DataType {
+    fn into(self) -> i32 {
+        match self {
+            DataType::BOOLEAN => 0,
+            DataType::INT32 => 1,
+            DataType::INT64 => 2,
+            DataType::FLOAT => 3,
+            DataType::DOUBLE => 4,
+            DataType::TEXT => 5,
+        }
+    }
+}
+
+/// IotDB encoding enum
+#[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Encoding {
+    PLAIN,
+    PlainDictionary,
+    RLE,
+    DIFF,
+    Ts2diff,
+    BITMAP,
+    GorillaV1,
+    REGULAR,
+    GORILLA,
+}
+
+impl Default for Encoding {
+    fn default() -> Self {
+        Encoding::PLAIN
+    }
+}
+
+impl From<i32> for Encoding {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => Encoding::PLAIN,
+            1 => Encoding::PlainDictionary,
+            2 => Encoding::RLE,
+            3 => Encoding::DIFF,
+            4 => Encoding::Ts2diff,
+            5 => Encoding::BITMAP,
+            6 => Encoding::GorillaV1,
+            7 => Encoding::REGULAR,
+            8 => Encoding::GORILLA,
+            _ => panic!("This '{}' encoding doesn't exist", value),
+        }
+    }
+}
+
+impl From<String> for Encoding {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "PLAIN" => Encoding::PLAIN,
+            "PlainDictionary" => Encoding::PlainDictionary,
+            "RLE" => Encoding::RLE,
+            "DIFF" => Encoding::DIFF,
+            "Ts2diff" => Encoding::Ts2diff,
+            "BITMAP" => Encoding::BITMAP,
+            "GorillaV1" => Encoding::GorillaV1,
+            "REGULAR" => Encoding::REGULAR,
+            "GORILLA" => Encoding::GORILLA,
+            _ => panic!("This '{}' encoding doesn't exist", value),
+        }
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<i32> for Encoding {
+    fn into(self) -> i32 {
+        match self {
+            Encoding::PLAIN => 0,
+            Encoding::PlainDictionary => 1,
+            Encoding::RLE => 2,
+            Encoding::DIFF => 3,
+            Encoding::Ts2diff => 4,
+            Encoding::BITMAP => 5,
+            Encoding::GorillaV1 => 6,
+            Encoding::REGULAR => 7,
+            Encoding::GORILLA => 8,
+        }
+    }
+}
+
+/// IotDB compressor enum
+#[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Compressor {
+    UNCOMPRESSED,
+    SNAPPY,
+    GZIP,
+    LZO,
+    SDT,
+    PAA,
+    PLA,
+    LZ4,
+}
+
+impl Default for Compressor {
+    fn default() -> Self {
+        Compressor::SNAPPY
+    }
+}
+
+impl From<i32> for Compressor {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => Compressor::UNCOMPRESSED,
+            1 => Compressor::SNAPPY,
+            2 => Compressor::GZIP,
+            3 => Compressor::LZO,
+            4 => Compressor::SDT,
+            5 => Compressor::PAA,
+            6 => Compressor::PLA,
+            7 => Compressor::LZ4,
+            _ => panic!("This '{}' compressor doesn't exist", value),
+        }
+    }
+}
+
+impl From<&str> for Compressor {
+    fn from(value: &str) -> Self {
+        match value {
+            "UNCOMPRESSED" => Compressor::UNCOMPRESSED,
+            "SNAPPY" => Compressor::SNAPPY,
+            "GZIP" => Compressor::GZIP,
+            "LZO" => Compressor::LZO,
+            "SDT" => Compressor::SDT,
+            "PAA" => Compressor::PAA,
+            "PLA" => Compressor::PLA,
+            "LZ4" => Compressor::LZ4,
+            _ => panic!("This '{}' compressor doesn't exist", value),
+        }
+    }
+}
+
+impl From<String> for Compressor {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "UNCOMPRESSED" => Compressor::UNCOMPRESSED,
+            "SNAPPY" => Compressor::SNAPPY,
+            "GZIP" => Compressor::GZIP,
+            "LZO" => Compressor::LZO,
+            "SDT" => Compressor::SDT,
+            "PAA" => Compressor::PAA,
+            "PLA" => Compressor::PLA,
+            "LZ4" => Compressor::LZ4,
+            _ => panic!("This '{}' compressor doesn't exist", value),
+        }
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<i32> for Compressor {
+    fn into(self) -> i32 {
+        match self {
+            Compressor::UNCOMPRESSED => 0,
+            Compressor::SNAPPY => 1,
+            Compressor::GZIP => 2,
+            Compressor::LZO => 3,
+            Compressor::SDT => 4,
+            Compressor::PAA => 5,
+            Compressor::PLA => 6,
+            Compressor::LZ4 => 7,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Endpoint {
@@ -142,12 +353,13 @@ pub struct Endpoint {
 }
 
 impl FromStr for Endpoint {
-    type Err = ();
+    type Err = anyhow::Error;
 
-    fn from_str(str: &str) -> Result<Self, Self::Err> {
+    fn from_str(str: &str) -> anyhow::Result<Self> {
         let host_port: Vec<&str> = str.split(':').collect();
         if host_port.is_empty() || host_port.len() != 2 {
-            panic!("Endpoint format error, endpoint: '{}'", str)
+            bail!("Endpoint format error, endpoint: '{}'", str)
+            // panic!("Endpoint format error, endpoint: '{}'", str)
         } else {
             Ok(Self {
                 host: String::from(host_port[0]),
@@ -187,7 +399,6 @@ pub struct Config {
     pub timeout: i64,
     pub fetch_size: i32,
     pub endpoint: Endpoint,
-    pub log_level: LevelFilter,
     pub rpc_compaction: bool,
     pub protocol_version: TSProtocolVersion,
     pub enable_redirect_query: bool,
@@ -203,7 +414,6 @@ impl Default for Config {
             timeout: 3000,
             time_zone: format!("{}{}", Utc::now().offset(), Local::now().offset()),
             fetch_size: 1024,
-            log_level: LevelFilter::Info,
             rpc_compaction: false,
             protocol_version: TSProtocolVersion::IOTDB_SERVICE_PROTOCOL_V3,
             enable_redirect_query: false,
@@ -225,8 +435,13 @@ impl ConfigBuilder {
         ConfigBuilder(Config::default())
     }
 
-    pub fn endpoint(&mut self, host: &str, port: &str) -> &mut Self {
+    pub fn host_port(&mut self, host: &str, port: &str) -> &mut Self {
         self.0.endpoint = Endpoint::new(host, port);
+        self
+    }
+
+    pub fn endpoint(&mut self, endpoint: &str) -> &mut Self {
+        self.0.endpoint = Endpoint::from_str(endpoint).unwrap();
         self
     }
 
@@ -252,18 +467,6 @@ impl ConfigBuilder {
 
     pub fn fetch_size(&mut self, fetch_size: i32) -> &mut Self {
         self.0.fetch_size = fetch_size;
-        self
-    }
-
-    pub fn log_level(&mut self, level: LevelFilter) -> &mut Self {
-        self.0.log_level = level;
-        self
-    }
-
-    pub fn debug(&mut self, debug: bool) -> &mut Self {
-        if debug {
-            self.0.log_level = LevelFilter::Debug
-        }
         self
     }
 
@@ -306,17 +509,14 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(config: Config) -> Session {
-        Logger::init(config.log_level);
+    // Open Session
+    pub fn connect(config: Config) -> anyhow::Result<Session> {
         debug!("{:#?}", &config);
-
-        let stream = TcpStream::connect(config.endpoint.to_string()).unwrap_or_else(|error| {
-            panic!("{:?}, reason: {:?}", config.endpoint, error.to_string())
-        });
+        let stream = TcpStream::connect(config.endpoint.to_string())?;
         debug!("TcpStream connect to {:?}", config.endpoint);
 
-        let channel = TTcpChannel::with_stream(stream);
-        let (channel_in, channel_out) = channel.split().unwrap();
+        let (channel_in, channel_out) = TTcpChannel::with_stream(stream).split()?;
+
         let (transport_in, transport_out) = (
             TFramedReadTransport::new(channel_in),
             TFramedWriteTransport::new(channel_out),
@@ -333,67 +533,51 @@ impl Session {
             debug!("Create TBinaryProtocol client",);
         }
 
-        Self {
-            client: TSIServiceSyncClient::new(protocol_in, protocol_out),
-            config,
-            session_id: -1,
-            statement_id: -1,
-            is_close: true,
-        }
-    }
+        let mut client = TSIServiceSyncClient::new(protocol_in, protocol_out);
 
-    // Open Session
-    pub fn open(mut self) -> Result<Session, ThriftError> {
         let open_req = TSOpenSessionReq::new(
-            self.config.protocol_version,
-            self.config.time_zone.clone(),
-            self.config.user.clone(),
-            self.config.password.clone(),
-            self.config.config_map.clone(),
+            config.protocol_version,
+            config.time_zone.clone(),
+            config.user.clone(),
+            config.password.clone(),
+            config.config_map.clone(),
         );
 
-        match self.client.open_session(open_req) {
-            Ok(resp) => {
-                let status = resp.status;
-                if self.is_success(&status) {
-                    if self.config.protocol_version != resp.server_protocol_version {
-                        self.is_close = true;
-                        let msg = format!(
-                            "Protocol version is different, client is {:?}, server is {:?}",
-                            self.config.protocol_version.clone(),
-                            resp.server_protocol_version
-                        );
-                        error!("{}", msg);
-                        Err(thrift::new_protocol_error(
-                            ProtocolErrorKind::BadVersion,
-                            msg,
-                        ))
-                    } else {
-                        self.is_close = false;
-                        self.session_id = resp.session_id.unwrap();
-                        self.statement_id = self.client.request_statement_id(self.session_id)?;
-                        debug!(
-                            "Open a session,session id: {}, statement id: {} ",
-                            self.session_id.clone(),
-                            self.statement_id.clone()
-                        );
-                        Ok(self)
-                    }
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
+        let TSOpenSessionResp {
+            status,
+            server_protocol_version,
+            session_id,
+            configuration: _,
+        } = client.open_session(open_req)?;
+        if status.code == SUCCESS_CODE {
+            if config.protocol_version != server_protocol_version {
+                let msg = format!(
+                    "Protocol version is different, client is {:?}, server is {:?}",
+                    config.protocol_version.clone(),
+                    server_protocol_version
+                );
+                error!("{}", msg);
+                bail!(msg)
+            } else {
+                let statement_id = client.request_statement_id(session_id.unwrap())?;
+                debug!(
+                    "Open a session,session id: {}, statement id: {} ",
+                    session_id.unwrap().clone(),
+                    statement_id,
+                );
+
+                Ok(Session {
+                    client,
+                    config,
+                    is_close: false,
+                    session_id: session_id.unwrap(),
+                    statement_id,
+                })
             }
-            Err(error) => {
-                self.is_close = true;
-                Err(error)
-            }
+        } else {
+            let msg = format!("{}", status.message.unwrap_or_else(|| "None".to_string()));
+            error!("{}", msg);
+            bail!(msg)
         }
     }
 
@@ -406,98 +590,73 @@ impl Session {
     }
 
     // Close Session
-    pub fn close(&mut self) -> Result<(), ThriftError> {
-        if self.is_close {
-            Ok(())
-        } else {
+    pub fn close(&mut self) -> anyhow::Result<()> {
+        if !self.is_close {
             let req = TSCloseSessionReq::new(self.session_id);
-            match self.client.close_session(req) {
-                Ok(status) => {
-                    if self.is_success(&status) {
-                        self.is_close = true;
-                        debug!("Session closed");
-                        Ok(())
-                    } else {
-                        error!(
-                            "Session closed failed, code: {}, reason: {}",
-                            status.code.clone(),
-                            status.message.clone().unwrap_or_else(|| "None".to_string())
-                        );
-                        Err(thrift::new_application_error(
-                            ApplicationErrorKind::MissingResult,
-                            status.message.unwrap_or_else(|| "None".to_string()),
-                        ))
-                    }
-                }
-                Err(error) => Err(error),
+            let status = self.client.close_session(req)?;
+            if self.is_success(&status) {
+                self.is_close = true;
+                debug!("Session closed");
+                Ok(())
+            } else {
+                error!(
+                    "Session closed failed, code: {}, reason: {}",
+                    status.code.clone(),
+                    status.message.clone().unwrap_or_else(|| "None".to_string())
+                );
+                bail!(status.message.unwrap_or_else(|| "None".to_string()))
             }
+        } else {
+            Ok(())
         }
     }
 
     /// Set a storage group
-    pub fn set_storage_group(&mut self, storage_group: &str) -> Result<(), ThriftError> {
-        match self
+    pub fn set_storage_group(&mut self, storage_group: &str) -> anyhow::Result<()> {
+        let status = self
             .client
-            .set_storage_group(self.session_id, storage_group.to_string())
-        {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Set storage group {:?}, message: {:?}",
-                        storage_group,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+            .set_storage_group(self.session_id, storage_group.to_string())?;
+
+        if self.is_success(&status) {
+            debug!(
+                "Set storage group {:?}, message: {:?}",
+                storage_group,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
     /// Delete a storage group.
-    pub fn delete_storage_group(&mut self, storage_group: &str) -> Result<(), ThriftError> {
+    pub fn delete_storage_group(&mut self, storage_group: &str) -> anyhow::Result<()> {
         debug!("Delete storage group {:?}", storage_group);
-        self.delete_storage_groups(vec![storage_group.to_string()])
+        Ok(self.delete_storage_groups(vec![storage_group.to_string()])?)
     }
 
     /// Delete storage groups.
-    pub fn delete_storage_groups(
-        &mut self,
-        storage_groups: Vec<String>,
-    ) -> Result<(), ThriftError> {
-        match self
+    pub fn delete_storage_groups(&mut self, storage_groups: Vec<String>) -> anyhow::Result<()> {
+        let status = self
             .client
-            .delete_storage_groups(self.session_id, storage_groups.clone())
-        {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Delete storage group(s) {:?}, message: {:?}",
-                        storage_groups,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+            .delete_storage_groups(self.session_id, storage_groups.clone())?;
+        if self.is_success(&status) {
+            debug!(
+                "Delete storage group(s) {:?}, message: {:?}",
+                storage_groups,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -508,7 +667,7 @@ impl Session {
         data_type: DataType,
         encoding: Encoding,
         compressor: Compressor,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSCreateTimeseriesReq::new(
             self.session_id,
             ts_path.to_string(),
@@ -521,36 +680,28 @@ impl Session {
             None,
         );
 
-        match self.check_time_series_exists(ts_path) {
-            Ok(exists) => {
-                if exists {
+        match self.check_time_series_exists(ts_path)? {
+            true => {
+                info!("{} time series exists", ts_path);
+                Ok(())
+            }
+            false => {
+                let status = self.client.create_timeseries(req)?;
+                if self.is_success(&status) {
+                    debug!(
+                        "Creat time series {:?}, message: {:?}",
+                        ts_path,
+                        status.message.unwrap_or_else(|| "None".to_string())
+                    );
                     Ok(())
                 } else {
-                    match self.client.create_timeseries(req) {
-                        Ok(status) => {
-                            if self.is_success(&status) {
-                                debug!(
-                                    "Creat time series {:?}, message: {:?}",
-                                    ts_path,
-                                    status.message.unwrap_or_else(|| "None".to_string())
-                                );
-                                Ok(())
-                            } else {
-                                error!(
-                                    "{}",
-                                    status.message.clone().unwrap_or_else(|| "None".to_string())
-                                );
-                                Err(thrift::new_application_error(
-                                    ApplicationErrorKind::MissingResult,
-                                    status.message.unwrap_or_else(|| "None".to_string()),
-                                ))
-                            }
-                        }
-                        Err(error) => Err(error),
-                    }
+                    error!(
+                        "{}",
+                        status.message.clone().unwrap_or_else(|| "None".to_string())
+                    );
+                    bail!(status.message.unwrap_or_else(|| "None".to_string()))
                 }
             }
-            Err(error) => Err(error),
         }
     }
 
@@ -561,7 +712,7 @@ impl Session {
         data_type_vec: Vec<i32>,
         encoding_vec: Vec<i32>,
         compressor_vec: Vec<i32>,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSCreateMultiTimeseriesReq::new(
             self.session_id,
             ts_path_vec.clone(),
@@ -573,61 +724,46 @@ impl Session {
             None,
             None,
         );
-        match self.client.create_multi_timeseries(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Creating multiple time series {:?}, message: {:?}",
-                        ts_path_vec,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.create_multi_timeseries(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Creating multiple time series {:?}, message: {:?}",
+                ts_path_vec,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
     /// Delete multiple time series
-    pub fn delete_time_series(&mut self, path_vec: Vec<String>) -> Result<(), ThriftError> {
-        match self
+    pub fn delete_time_series(&mut self, path_vec: Vec<String>) -> anyhow::Result<()> {
+        let status = self
             .client
-            .delete_timeseries(self.session_id, path_vec.clone())
-        {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Deleting multiple time series {:?}, message: {:?}",
-                        path_vec,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+            .delete_timeseries(self.session_id, path_vec.clone())?;
+        if self.is_success(&status) {
+            debug!(
+                "Deleting multiple time series {:?}, message: {:?}",
+                path_vec,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
     /// Check whether a specific time-series exists
-    pub fn check_time_series_exists(&mut self, path: &str) -> Result<bool, ThriftError> {
+    pub fn check_time_series_exists(&mut self, path: &str) -> anyhow::Result<bool> {
         let config = self.config.clone();
         let statement = format!("SHOW TIMESERIES {}", path);
         let req = TSExecuteStatementReq::new(
@@ -640,52 +776,34 @@ impl Session {
             false,
         );
 
-        match self.client.execute_query_statement(req) {
-            Ok(resp) => match resp.query_data_set {
-                None => Err(thrift::new_application_error(
-                    ApplicationErrorKind::MissingResult,
-                    resp.status.message.unwrap_or_else(|| "None".to_string()),
-                )),
-                Some(data_set) => {
-                    if data_set.value_list.is_empty() {
-                        Ok(false)
-                    } else {
-                        Ok(true)
-                    }
+        match self.client.execute_query_statement(req)? {
+            TSExecuteStatementResp { query_data_set, .. } => {
+                if query_data_set.is_none() {
+                    Ok(false)
+                } else {
+                    Ok(query_data_set.unwrap().value_list.is_empty())
                 }
-            },
-            Err(error) => Err(error),
+            }
         }
     }
 
     /// Delete all data <= time in multiple time-series
-    pub fn delete_data(
-        &mut self,
-        path_vec: Vec<String>,
-        timestamp: i64,
-    ) -> Result<(), ThriftError> {
+    pub fn delete_data(&mut self, path_vec: Vec<String>, timestamp: i64) -> anyhow::Result<()> {
         let req = TSDeleteDataReq::new(self.session_id, path_vec.clone(), 0, timestamp);
-        match self.client.delete_data(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Delete data from {:?}, message: {:?}",
-                        path_vec,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.delete_data(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Delete data from {:?}, message: {:?}",
+                path_vec,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -697,7 +815,7 @@ impl Session {
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<String>>,
         is_aligned: bool,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertStringRecordsReq::new(
             self.session_id,
             device_ids.clone(),
@@ -706,27 +824,21 @@ impl Session {
             timestamps,
             is_aligned,
         );
-        match self.client.insert_string_records(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Insert string records to device {:?}, message: {:?}",
-                        device_ids,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+
+        let status = self.client.insert_string_records(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Insert string records to device {:?}, message: {:?}",
+                device_ids,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -738,7 +850,7 @@ impl Session {
         measurements: Vec<String>,
         values: Vec<u8>,
         is_aligned: bool,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertRecordReq::new(
             self.session_id,
             device_id.to_string(),
@@ -747,27 +859,21 @@ impl Session {
             timestamp,
             is_aligned,
         );
-        match self.client.insert_record(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Insert one record to device {:?}, message: {:?}",
-                        device_id,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+
+        let status = self.client.insert_record(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Insert one record to device {:?}, message: {:?}",
+                device_id,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -780,7 +886,7 @@ impl Session {
         measurements: Vec<String>,
         values: Vec<u8>,
         is_aligned: bool,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertRecordReq::new(
             self.session_id,
             prefix_path.to_string(),
@@ -789,27 +895,20 @@ impl Session {
             timestamp,
             is_aligned,
         );
-        match self.client.test_insert_record(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Testing! insert one record to prefix path {:?}, message: {:?}",
-                        prefix_path,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.test_insert_record(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Testing! insert one record to prefix path {:?}, message: {:?}",
+                prefix_path,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -821,7 +920,7 @@ impl Session {
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<u8>>,
         is_aligned: bool,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertRecordsReq::new(
             self.session_id,
             prefix_paths.clone(),
@@ -830,27 +929,20 @@ impl Session {
             timestamps,
             is_aligned,
         );
-        match self.client.insert_records(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Insert multiple records to prefix path {:?}, message: {:?}",
-                        prefix_paths,
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.insert_records(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Insert multiple records to prefix path {:?}, message: {:?}",
+                prefix_paths,
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -863,7 +955,7 @@ impl Session {
         measurements_list: Vec<Vec<String>>,
         values_list: Vec<Vec<u8>>,
         is_aligned: bool,
-    ) -> Result<(), ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertRecordsReq::new(
             self.session_id,
             prefix_paths,
@@ -872,26 +964,19 @@ impl Session {
             timestamps,
             is_aligned,
         );
-        match self.client.test_insert_records(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    debug!(
-                        "Testing! insert multiple records, message: {:?}",
-                        status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.test_insert_records(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Testing! insert multiple records, message: {:?}",
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -914,7 +999,7 @@ impl Session {
         types: Vec<i32>,
         size: i32,
         is_aligned: bool,
-    ) -> Result<TSStatus, ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertTabletReq::new(
             self.session_id,
             prefix_path.to_string(),
@@ -925,7 +1010,20 @@ impl Session {
             size,
             is_aligned,
         );
-        self.client.insert_tablet(req)
+        let status = self.client.insert_tablet(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Testing! insert multiple records, message: {:?}",
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
+        }
     }
 
     /// insert multiple tablets, tablets are independent to each other
@@ -940,7 +1038,7 @@ impl Session {
         types_list: Vec<Vec<i32>>,
         size_list: Vec<i32>,
         is_aligned: bool,
-    ) -> Result<TSStatus, ThriftError> {
+    ) -> anyhow::Result<()> {
         let req = TSInsertTabletsReq::new(
             self.session_id,
             prefix_paths,
@@ -951,7 +1049,20 @@ impl Session {
             size_list,
             is_aligned,
         );
-        self.client.insert_tablets(req)
+        let status = self.client.insert_tablets(req)?;
+        if self.is_success(&status) {
+            debug!(
+                "Testing! insert multiple records, message: {:?}",
+                status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(())
+        } else {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
+        }
     }
 
     /// TODO
@@ -979,12 +1090,12 @@ impl Session {
     /// TODO
     pub fn gen_insert_tablets_req() {}
 
-    pub fn sql(&mut self, sql: &str) -> Result<DataSet, ThriftError> {
+    pub fn sql(&mut self, sql: &str) -> anyhow::Result<DataSet> {
         self.exec(sql)
     }
 
     /// execute query sql statement and return a DataSet
-    fn exec(&mut self, statement: &str) -> Result<DataSet, ThriftError> {
+    fn exec(&mut self, statement: &str) -> anyhow::Result<DataSet> {
         debug!("Exec statement \"{}\"", statement);
         let req = TSExecuteStatementReq::new(
             self.session_id,
@@ -995,59 +1106,38 @@ impl Session {
             self.config.enable_redirect_query,
             false,
         );
-
-        match self.client.execute_statement(req) {
-            Ok(resp) => {
-                if self.is_success(&resp.status) {
-                    debug!(
-                        "Execute statement {:?}, message: {:?}",
-                        statement,
-                        resp.status
-                            .clone()
-                            .message
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(DataSet::new(
-                        statement.to_string(),
-                        self.session_id,
-                        self.config.fetch_size,
-                        resp,
-                    ))
-                } else {
-                    error!(
-                        "{}",
-                        resp.status
-                            .message
-                            .clone()
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let resp = self.client.execute_statement(req)?;
+        let status = resp.clone().status;
+        let msg = status.clone().message.unwrap_or_else(|| "None".to_string());
+        if self.is_success(&status) {
+            debug!(
+                "Execute statement {:?}, message: {:?}",
+                statement,
+                msg.clone()
+            );
+            Ok(DataSet::new(resp))
+        } else {
+            error!("{}", msg.clone());
+            bail!(msg)
         }
     }
 
     /// execute batch statement and return a DataSets
-    pub fn exec_batch(&mut self, statements: Vec<String>) {
+    pub fn exec_batch(&mut self, statements: Vec<String>) -> anyhow::Result<()> {
         let req = TSExecuteBatchStatementReq::new(self.session_id, statements);
-        match self.client.execute_batch_statement(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    info!("{}", status.message.unwrap_or_else(|| "None".to_string()));
-                } else {
-                    error!("{}", status.message.unwrap_or_else(|| "None".to_string()));
-                }
-            }
-            Err(error) => error!("{}", error),
+        let status = self.client.execute_batch_statement(req)?;
+        let msg = status.clone().message.unwrap_or_else(|| "None".to_string());
+        if self.is_success(&status) {
+            info!("{}", msg);
+            Ok(())
+        } else {
+            error!("{}", msg);
+            bail!(msg)
         }
     }
 
     /// execute query sql statement and return a DataSet
-    pub fn exec_query(&mut self, query: &str) -> Result<DataSet, ThriftError> {
+    pub fn exec_query(&mut self, query: &str) -> anyhow::Result<DataSet> {
         debug!("Exec query \"{}\"", &query);
         let req = TSExecuteStatementReq::new(
             self.session_id,
@@ -1059,44 +1149,32 @@ impl Session {
             false,
         );
 
-        match self.client.execute_query_statement(req) {
-            Ok(resp) => {
-                if self.is_success(&resp.status) {
-                    debug!(
-                        "Execute query {:?}, message: {:?}",
-                        query,
-                        resp.status
-                            .clone()
-                            .message
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(DataSet::new(
-                        query.to_string(),
-                        self.session_id,
-                        self.config.fetch_size,
-                        resp,
-                    ))
-                } else {
-                    error!(
-                        "Exec query failed, code: {}, reason: {}",
-                        resp.status.code.clone(),
-                        resp.status
-                            .clone()
-                            .message
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let resp = self.client.execute_query_statement(req)?;
+        if self.is_success(&resp.status) {
+            debug!(
+                "Execute query {:?}, message: {:?}",
+                query,
+                resp.status
+                    .clone()
+                    .message
+                    .unwrap_or_else(|| "None".to_string())
+            );
+            Ok(DataSet::new(resp))
+        } else {
+            error!(
+                "Exec query failed, code: {}, reason: {}",
+                resp.status.code.clone(),
+                resp.status
+                    .clone()
+                    .message
+                    .unwrap_or_else(|| "None".to_string())
+            );
+            bail!(resp.status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
     /// execute update statement and return a DataSet
-    pub fn exec_update(&mut self, statement: &str) -> Result<DataSet, ThriftError> {
+    pub fn exec_update(&mut self, statement: &str) -> anyhow::Result<DataSet> {
         let req = TSExecuteStatementReq::new(
             self.session_id,
             statement.to_string(),
@@ -1107,38 +1185,26 @@ impl Session {
             false,
         );
 
-        match self.client.execute_update_statement(req) {
-            Ok(resp) => {
-                if self.is_success(&resp.status) {
-                    debug!(
-                        "Execute update statement {:?}, message: {:?}",
-                        statement,
-                        resp.status
-                            .clone()
-                            .message
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(DataSet::new(
-                        statement.to_string(),
-                        self.session_id,
-                        self.config.fetch_size,
-                        resp,
-                    ))
-                } else {
-                    error!(
-                        "{}",
-                        resp.status
-                            .message
-                            .clone()
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let resp = self.client.execute_update_statement(req)?;
+        if self.is_success(&resp.status) {
+            debug!(
+                "Execute update statement {:?}, message: {:?}",
+                statement,
+                resp.status
+                    .clone()
+                    .message
+                    .unwrap_or_else(|| "None".to_string())
+            );
+            Ok(DataSet::new(resp))
+        } else {
+            error!(
+                "{}",
+                resp.status
+                    .message
+                    .clone()
+                    .unwrap_or_else(|| "None".to_string())
+            );
+            bail!(resp.status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
@@ -1148,7 +1214,7 @@ impl Session {
         paths: Vec<String>,
         start_time: i64,
         end_time: i64,
-    ) -> Result<DataSet, ThriftError> {
+    ) -> anyhow::Result<DataSet> {
         let req = TSRawDataQueryReq::new(
             self.session_id,
             paths,
@@ -1159,71 +1225,47 @@ impl Session {
             self.config.enable_redirect_query,
             false,
         );
-
-        match self.client.execute_raw_data_query(req) {
-            Ok(resp) => {
-                if self.is_success(&resp.status) {
-                    Ok(DataSet::new(
-                        "".to_string(),
-                        self.session_id,
-                        self.config.fetch_size,
-                        resp,
-                    ))
-                } else {
-                    error!(
-                        "{}",
-                        resp.status
-                            .message
-                            .clone()
-                            .unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        resp.status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let resp = self.client.execute_raw_data_query(req)?;
+        if self.is_success(&resp.status) {
+            Ok(DataSet::new(resp))
+        } else {
+            error!(
+                "{}",
+                resp.status
+                    .message
+                    .clone()
+                    .unwrap_or_else(|| "None".to_string())
+            );
+            bail!(resp.status.message.unwrap_or_else(|| "None".to_string()))
         }
     }
 
     /// Set time zone
-    pub fn set_time_zone(&mut self, time_zone: &str) -> Result<(), ThriftError> {
+    pub fn set_time_zone(&mut self, time_zone: &str) -> anyhow::Result<()> {
         let req = TSSetTimeZoneReq::new(self.session_id, time_zone.to_string());
-        match self.client.set_time_zone(req) {
-            Ok(status) => {
-                if status.code == 200 {
-                    Ok(())
-                } else {
-                    error!(
-                        "{}",
-                        status.message.clone().unwrap_or_else(|| "None".to_string())
-                    );
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        status.message.unwrap_or_else(|| "None".to_string()),
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.set_time_zone(req)?;
+        if !self.is_success(&status) {
+            error!(
+                "{}",
+                status.message.clone().unwrap_or_else(|| "None".to_string())
+            );
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
+        } else {
+            Ok(())
         }
     }
 
     /// Get time zone
-    pub fn time_zone(&mut self) -> Result<String, ThriftError> {
-        match self.client.get_time_zone(self.session_id) {
-            Ok(resp) => {
-                if resp.status.code == 200 {
-                    Ok(resp.time_zone)
-                } else {
-                    error!(
-                        "{}",
-                        resp.status.message.unwrap_or_else(|| "None".to_string())
-                    );
-                    Ok(String::new())
-                }
-            }
-            Err(error) => Err(error),
+    pub fn time_zone(&mut self) -> anyhow::Result<String> {
+        let resp = self.client.get_time_zone(self.session_id)?;
+        if self.is_success(&resp.status) {
+            Ok(resp.time_zone)
+        } else {
+            error!(
+                "{}",
+                resp.status.message.unwrap_or_else(|| "None".to_string())
+            );
+            Ok(String::new())
         }
     }
 
@@ -1234,22 +1276,15 @@ impl Session {
 
     /// Cancel operation
     #[allow(dead_code)]
-    fn cancel_operation(&mut self, query_id: i64) -> Result<(), ThriftError> {
+    fn cancel_operation(&mut self, query_id: i64) -> anyhow::Result<()> {
         let req = TSCancelOperationReq::new(self.session_id, query_id);
-        match self.client.cancel_operation(req) {
-            Ok(status) => {
-                if self.is_success(&status) {
-                    Ok(())
-                } else {
-                    let msg = format!("Cancel operation failed,'{:?}'", query_id);
-                    error!("{}", msg);
-                    Err(thrift::new_application_error(
-                        ApplicationErrorKind::MissingResult,
-                        msg,
-                    ))
-                }
-            }
-            Err(error) => Err(error),
+        let status = self.client.cancel_operation(req)?;
+        if !self.is_success(&status) {
+            let msg = format!("Cancel operation failed,'{:?}'", query_id);
+            error!("{}", msg);
+            bail!(status.message.unwrap_or_else(|| "None".to_string()))
+        } else {
+            Ok(())
         }
     }
 }
