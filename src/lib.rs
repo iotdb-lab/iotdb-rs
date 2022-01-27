@@ -22,47 +22,47 @@
 //!
 //! ```toml
 //! [dependencies]
-//! iotdb = "0.0.6"
+//! iotdb = "0.0.7"
+//! simplelog = "0.11.0"
 //! ```
 //!
 //! # Example
 //!
 //! ```rust
 //! use chrono::Local;
-//! use thrift::Error;
 //!
-//! use iotdb::common::{Compressor, DataType, Encoding};
-//! use iotdb::{ConfigBuilder, Session};
+//! use iotdb::*;
 //!
-//! fn main() -> Result<(), Error> {
-//!  let config = ConfigBuilder::new()
-//!         .endpoint("127.0.0.1", "6667")
+//! fn main() -> Result<(), anyhow::Error> {
+//!     debug(false);
+//!
+//!     let config = iotdb::ConfigBuilder::new()
+//!         .endpoint("localhost:6667")
 //!         .user("root")
 //!         .password("root")
-//!         .zone_id("UTC+8")
-//!         .debug(true)
+//!         .time_zone("UTC+8")
 //!         .build();
 //!
-//!      // open session
-//!     let mut session = Session::new(config).open()?;
+//!     // open session
+//!     let mut session = Session::connect(config)?;
 //!     println!("time_zone: {}", session.time_zone()?);
 //!     session.delete_storage_group("root.ln")?;
 //!     session.set_storage_group("root.ln")?;
 //!     session.create_time_series(
 //!         "root.ln.wf01.wt01.temperature",
-//!         DataType::INT64,
+//!         DataType::FLOAT,
 //!         Encoding::default(),
 //!         Compressor::default(),
 //!     )?;
 //!
 //!     session.create_time_series(
-//!         "root.ln.wf01.wt01.humidity",
-//!         DataType::INT64,
+//!         "root.ln.wf01.wt01.status",
+//!         DataType::BOOLEAN,
 //!         Encoding::default(),
 //!         Compressor::default(),
 //!     )?;
 //!
-//!     let now = Local::now().timestamp();
+//!     let now = Local::now().timestamp_millis();
 //!     session.sql(
 //!         format!(
 //!             "INSERT INTO root.ln.wf01.wt01(timestamp,status) values({},true)",
@@ -91,41 +91,50 @@
 //!         )
 //!         .as_str(),
 //!     )?;
-//!    session.sql("select * from root.ln")?.show();
-//!    session.close()?;
+//!     session.sql("select * from root.ln")?.show();
 //!
-//!   Ok(())
+//!     // DF (TODO)
+//!     let df = session.sql("select * from root.ln")?.to_df()?;
+//!     println!("IoTDB DF is empty: {}", df.is_empty());
+//!
+//!     session.close()?;
+//!
+//!     Ok(())
+//! }
+//!
+//! fn debug(enable: bool) {
+//!     use simplelog::*;
+//!     let mut log_level = LevelFilter::Info;
+//!     if enable {
+//!         log_level = LevelFilter::Debug;
+//!     }
+//!     let _ = CombinedLogger::init(vec![TermLogger::new(
+//!         log_level,
+//!         Default::default(),
+//!         TerminalMode::Mixed,
+//!         ColorChoice::Auto,
+//!     )]);
 //! }
 //! ```
 #[macro_use]
 extern crate prettytable;
 
-pub use chrono;
-pub use polars;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 use std::str::FromStr;
-pub use thrift;
 
 use anyhow::bail;
+pub use chrono;
 use chrono::{Local, Utc};
 use log::{debug, error, info};
 use mimalloc::MiMalloc;
-use thrift::protocol::{
-    TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
-    TInputProtocol, TOutputProtocol,
-};
-use thrift::transport::{TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel};
+pub use polars;
+pub use thrift;
+use thrift::protocol::*;
+use thrift::transport::*;
 
 use crate::ds::DataSet;
-pub use crate::ds::*;
-use crate::rpc::{
-    TSCancelOperationReq, TSCloseSessionReq, TSCreateMultiTimeseriesReq, TSCreateTimeseriesReq,
-    TSDeleteDataReq, TSExecuteBatchStatementReq, TSExecuteStatementReq, TSExecuteStatementResp,
-    TSIServiceSyncClient, TSInsertRecordReq, TSInsertRecordsReq, TSInsertStringRecordsReq,
-    TSInsertTabletReq, TSInsertTabletsReq, TSOpenSessionReq, TSOpenSessionResp, TSProtocolVersion,
-    TSRawDataQueryReq, TSSetTimeZoneReq, TSStatus, TTSIServiceSyncClient,
-};
+use crate::rpc::*;
 
 mod ds;
 mod errors;
@@ -345,6 +354,7 @@ impl Into<i32> for Compressor {
     }
 }
 
+/// Session Endpoint
 #[derive(Clone, Debug)]
 pub struct Endpoint {
     pub host: String,
@@ -421,6 +431,7 @@ impl Default for Config {
     }
 }
 
+/// IotDB Config Builder
 pub struct ConfigBuilder(Config);
 
 impl Default for ConfigBuilder {
@@ -499,6 +510,7 @@ impl ConfigBuilder {
     }
 }
 
+/// IotDB Session
 pub struct Session {
     client: ClientType,
     config: Config,
@@ -574,7 +586,7 @@ impl Session {
                 })
             }
         } else {
-            let msg = format!("{}", status.message.unwrap_or_else(|| "None".to_string()));
+            let msg = status.message.unwrap_or_else(|| "None".to_string());
             error!("{}", msg);
             bail!(msg)
         }
@@ -635,7 +647,7 @@ impl Session {
     /// Delete a storage group.
     pub fn delete_storage_group(&mut self, storage_group: &str) -> anyhow::Result<()> {
         debug!("Delete storage group {:?}", storage_group);
-        Ok(self.delete_storage_groups(vec![storage_group.to_string()])?)
+        self.delete_storage_groups(vec![storage_group.to_string()])
     }
 
     /// Delete storage groups.
@@ -775,14 +787,12 @@ impl Session {
             false,
         );
 
-        match self.client.execute_query_statement(req)? {
-            TSExecuteStatementResp { query_data_set, .. } => {
-                if query_data_set.is_none() {
-                    Ok(false)
-                } else {
-                    Ok(query_data_set.unwrap().value_list.is_empty())
-                }
-            }
+        let TSExecuteStatementResp { query_data_set, .. } =
+            self.client.execute_query_statement(req)?;
+        if let Some(..) = query_data_set {
+            Ok(false)
+        } else {
+            Ok(query_data_set.unwrap().value_list.is_empty())
         }
     }
 
@@ -1109,14 +1119,10 @@ impl Session {
         let status = resp.clone().status;
         let msg = status.clone().message.unwrap_or_else(|| "None".to_string());
         if self.is_success(&status) {
-            debug!(
-                "Execute statement {:?}, message: {:?}",
-                statement,
-                msg.clone()
-            );
+            debug!("Execute statement {:?}, message: {:?}", statement, msg);
             Ok(DataSet::new(resp))
         } else {
-            error!("{}", msg.clone());
+            error!("{}", msg);
             bail!(msg)
         }
     }

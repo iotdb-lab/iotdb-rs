@@ -3040,6 +3040,170 @@ impl TSInsertRecordsOfOneDeviceReq {
 }
 
 //
+// TSInsertStringRecordsOfOneDeviceReq
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSInsertStringRecordsOfOneDeviceReq {
+  pub session_id: i64,
+  pub prefix_path: String,
+  pub measurements_list: Vec<Vec<String>>,
+  pub values_list: Vec<Vec<String>>,
+  pub timestamps: Vec<i64>,
+  pub is_aligned: Option<bool>,
+}
+
+impl TSInsertStringRecordsOfOneDeviceReq {
+  pub fn new<F6>(session_id: i64, prefix_path: String, measurements_list: Vec<Vec<String>>, values_list: Vec<Vec<String>>, timestamps: Vec<i64>, is_aligned: F6) -> TSInsertStringRecordsOfOneDeviceReq where F6: Into<Option<bool>> {
+    TSInsertStringRecordsOfOneDeviceReq {
+      session_id,
+      prefix_path,
+      measurements_list,
+      values_list,
+      timestamps,
+      is_aligned: is_aligned.into(),
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSInsertStringRecordsOfOneDeviceReq> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<i64> = None;
+    let mut f_2: Option<String> = None;
+    let mut f_3: Option<Vec<Vec<String>>> = None;
+    let mut f_4: Option<Vec<Vec<String>>> = None;
+    let mut f_5: Option<Vec<i64>> = None;
+    let mut f_6: Option<bool> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = i_prot.read_i64()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_string()?;
+          f_2 = Some(val);
+        },
+        3 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_ident = i_prot.read_list_begin()?;
+            let mut list_elem_41: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            for _ in 0..list_ident.size {
+              let list_elem_42 = i_prot.read_string()?;
+              list_elem_41.push(list_elem_42);
+            }
+            i_prot.read_list_end()?;
+            val.push(list_elem_41);
+          }
+          i_prot.read_list_end()?;
+          f_3 = Some(val);
+        },
+        4 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_ident = i_prot.read_list_begin()?;
+            let mut list_elem_43: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            for _ in 0..list_ident.size {
+              let list_elem_44 = i_prot.read_string()?;
+              list_elem_43.push(list_elem_44);
+            }
+            i_prot.read_list_end()?;
+            val.push(list_elem_43);
+          }
+          i_prot.read_list_end()?;
+          f_4 = Some(val);
+        },
+        5 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<i64> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_45 = i_prot.read_i64()?;
+            val.push(list_elem_45);
+          }
+          i_prot.read_list_end()?;
+          f_5 = Some(val);
+        },
+        6 => {
+          let val = i_prot.read_bool()?;
+          f_6 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSInsertStringRecordsOfOneDeviceReq.session_id", &f_1)?;
+    verify_required_field_exists("TSInsertStringRecordsOfOneDeviceReq.prefix_path", &f_2)?;
+    verify_required_field_exists("TSInsertStringRecordsOfOneDeviceReq.measurements_list", &f_3)?;
+    verify_required_field_exists("TSInsertStringRecordsOfOneDeviceReq.values_list", &f_4)?;
+    verify_required_field_exists("TSInsertStringRecordsOfOneDeviceReq.timestamps", &f_5)?;
+    let ret = TSInsertStringRecordsOfOneDeviceReq {
+      session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      prefix_path: f_2.expect("auto-generated code should have checked for presence of required fields"),
+      measurements_list: f_3.expect("auto-generated code should have checked for presence of required fields"),
+      values_list: f_4.expect("auto-generated code should have checked for presence of required fields"),
+      timestamps: f_5.expect("auto-generated code should have checked for presence of required fields"),
+      is_aligned: f_6,
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSInsertStringRecordsOfOneDeviceReq");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("sessionId", TType::I64, 1))?;
+    o_prot.write_i64(self.session_id)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("prefixPath", TType::String, 2))?;
+    o_prot.write_string(&self.prefix_path)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("measurementsList", TType::List, 3))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.measurements_list.len() as i32))?;
+    for e in &self.measurements_list {
+      o_prot.write_list_begin(&TListIdentifier::new(TType::String, e.len() as i32))?;
+      for e in e {
+        o_prot.write_string(e)?;
+      }
+      o_prot.write_list_end()?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("valuesList", TType::List, 4))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.values_list.len() as i32))?;
+    for e in &self.values_list {
+      o_prot.write_list_begin(&TListIdentifier::new(TType::String, e.len() as i32))?;
+      for e in e {
+        o_prot.write_string(e)?;
+      }
+      o_prot.write_list_end()?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("timestamps", TType::List, 5))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::I64, self.timestamps.len() as i32))?;
+    for e in &self.timestamps {
+      o_prot.write_i64(*e)?;
+    }
+    o_prot.write_list_end()?;
+    o_prot.write_field_end()?;
+    if let Some(fld_var) = self.is_aligned {
+      o_prot.write_field_begin(&TFieldIdentifier::new("isAligned", TType::Bool, 6))?;
+      o_prot.write_bool(fld_var)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
 // TSInsertStringRecordsReq
 //
 
@@ -3087,8 +3251,8 @@ impl TSInsertStringRecordsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_41 = i_prot.read_string()?;
-            val.push(list_elem_41);
+            let list_elem_46 = i_prot.read_string()?;
+            val.push(list_elem_46);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3098,13 +3262,13 @@ impl TSInsertStringRecordsReq {
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_42: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_47: Vec<String> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_43 = i_prot.read_string()?;
-              list_elem_42.push(list_elem_43);
+              let list_elem_48 = i_prot.read_string()?;
+              list_elem_47.push(list_elem_48);
             }
             i_prot.read_list_end()?;
-            val.push(list_elem_42);
+            val.push(list_elem_47);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -3114,13 +3278,13 @@ impl TSInsertStringRecordsReq {
           let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
             let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_44: Vec<String> = Vec::with_capacity(list_ident.size as usize);
+            let mut list_elem_49: Vec<String> = Vec::with_capacity(list_ident.size as usize);
             for _ in 0..list_ident.size {
-              let list_elem_45 = i_prot.read_string()?;
-              list_elem_44.push(list_elem_45);
+              let list_elem_50 = i_prot.read_string()?;
+              list_elem_49.push(list_elem_50);
             }
             i_prot.read_list_end()?;
-            val.push(list_elem_44);
+            val.push(list_elem_49);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -3129,8 +3293,8 @@ impl TSInsertStringRecordsReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i64> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_46 = i_prot.read_i64()?;
-            val.push(list_elem_46);
+            let list_elem_51 = i_prot.read_i64()?;
+            val.push(list_elem_51);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -3255,8 +3419,8 @@ impl TSDeleteDataReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_47 = i_prot.read_string()?;
-            val.push(list_elem_47);
+            let list_elem_52 = i_prot.read_string()?;
+            val.push(list_elem_52);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3385,9 +3549,9 @@ impl TSCreateTimeseriesReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_48 = i_prot.read_string()?;
-            let map_val_49 = i_prot.read_string()?;
-            val.insert(map_key_48, map_val_49);
+            let map_key_53 = i_prot.read_string()?;
+            let map_val_54 = i_prot.read_string()?;
+            val.insert(map_key_53, map_val_54);
           }
           i_prot.read_map_end()?;
           f_6 = Some(val);
@@ -3396,9 +3560,9 @@ impl TSCreateTimeseriesReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_50 = i_prot.read_string()?;
-            let map_val_51 = i_prot.read_string()?;
-            val.insert(map_key_50, map_val_51);
+            let map_key_55 = i_prot.read_string()?;
+            let map_val_56 = i_prot.read_string()?;
+            val.insert(map_key_55, map_val_56);
           }
           i_prot.read_map_end()?;
           f_7 = Some(val);
@@ -3407,9 +3571,9 @@ impl TSCreateTimeseriesReq {
           let map_ident = i_prot.read_map_begin()?;
           let mut val: BTreeMap<String, String> = BTreeMap::new();
           for _ in 0..map_ident.size {
-            let map_key_52 = i_prot.read_string()?;
-            let map_val_53 = i_prot.read_string()?;
-            val.insert(map_key_52, map_val_53);
+            let map_key_57 = i_prot.read_string()?;
+            let map_val_58 = i_prot.read_string()?;
+            val.insert(map_key_57, map_val_58);
           }
           i_prot.read_map_end()?;
           f_8 = Some(val);
@@ -3512,19 +3676,19 @@ pub struct TSCreateAlignedTimeseriesReq {
   pub measurements: Vec<String>,
   pub data_types: Vec<i32>,
   pub encodings: Vec<i32>,
-  pub compressor: i32,
+  pub compressors: Vec<i32>,
   pub measurement_alias: Option<Vec<String>>,
 }
 
 impl TSCreateAlignedTimeseriesReq {
-  pub fn new<F7>(session_id: i64, prefix_path: String, measurements: Vec<String>, data_types: Vec<i32>, encodings: Vec<i32>, compressor: i32, measurement_alias: F7) -> TSCreateAlignedTimeseriesReq where F7: Into<Option<Vec<String>>> {
+  pub fn new<F7>(session_id: i64, prefix_path: String, measurements: Vec<String>, data_types: Vec<i32>, encodings: Vec<i32>, compressors: Vec<i32>, measurement_alias: F7) -> TSCreateAlignedTimeseriesReq where F7: Into<Option<Vec<String>>> {
     TSCreateAlignedTimeseriesReq {
       session_id,
       prefix_path,
       measurements,
       data_types,
       encodings,
-      compressor,
+      compressors,
       measurement_alias: measurement_alias.into(),
     }
   }
@@ -3535,7 +3699,7 @@ impl TSCreateAlignedTimeseriesReq {
     let mut f_3: Option<Vec<String>> = None;
     let mut f_4: Option<Vec<i32>> = None;
     let mut f_5: Option<Vec<i32>> = None;
-    let mut f_6: Option<i32> = None;
+    let mut f_6: Option<Vec<i32>> = None;
     let mut f_7: Option<Vec<String>> = None;
     loop {
       let field_ident = i_prot.read_field_begin()?;
@@ -3556,8 +3720,8 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_54 = i_prot.read_string()?;
-            val.push(list_elem_54);
+            let list_elem_59 = i_prot.read_string()?;
+            val.push(list_elem_59);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -3566,8 +3730,8 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_55 = i_prot.read_i32()?;
-            val.push(list_elem_55);
+            let list_elem_60 = i_prot.read_i32()?;
+            val.push(list_elem_60);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -3576,22 +3740,28 @@ impl TSCreateAlignedTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_56 = i_prot.read_i32()?;
-            val.push(list_elem_56);
+            let list_elem_61 = i_prot.read_i32()?;
+            val.push(list_elem_61);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
         },
         6 => {
-          let val = i_prot.read_i32()?;
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let list_elem_62 = i_prot.read_i32()?;
+            val.push(list_elem_62);
+          }
+          i_prot.read_list_end()?;
           f_6 = Some(val);
         },
         7 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_57 = i_prot.read_string()?;
-            val.push(list_elem_57);
+            let list_elem_63 = i_prot.read_string()?;
+            val.push(list_elem_63);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
@@ -3608,14 +3778,14 @@ impl TSCreateAlignedTimeseriesReq {
     verify_required_field_exists("TSCreateAlignedTimeseriesReq.measurements", &f_3)?;
     verify_required_field_exists("TSCreateAlignedTimeseriesReq.data_types", &f_4)?;
     verify_required_field_exists("TSCreateAlignedTimeseriesReq.encodings", &f_5)?;
-    verify_required_field_exists("TSCreateAlignedTimeseriesReq.compressor", &f_6)?;
+    verify_required_field_exists("TSCreateAlignedTimeseriesReq.compressors", &f_6)?;
     let ret = TSCreateAlignedTimeseriesReq {
       session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
       prefix_path: f_2.expect("auto-generated code should have checked for presence of required fields"),
       measurements: f_3.expect("auto-generated code should have checked for presence of required fields"),
       data_types: f_4.expect("auto-generated code should have checked for presence of required fields"),
       encodings: f_5.expect("auto-generated code should have checked for presence of required fields"),
-      compressor: f_6.expect("auto-generated code should have checked for presence of required fields"),
+      compressors: f_6.expect("auto-generated code should have checked for presence of required fields"),
       measurement_alias: f_7,
     };
     Ok(ret)
@@ -3650,8 +3820,12 @@ impl TSCreateAlignedTimeseriesReq {
     }
     o_prot.write_list_end()?;
     o_prot.write_field_end()?;
-    o_prot.write_field_begin(&TFieldIdentifier::new("compressor", TType::I32, 6))?;
-    o_prot.write_i32(self.compressor)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("compressors", TType::List, 6))?;
+    o_prot.write_list_begin(&TListIdentifier::new(TType::I32, self.compressors.len() as i32))?;
+    for e in &self.compressors {
+      o_prot.write_i32(*e)?;
+    }
+    o_prot.write_list_end()?;
     o_prot.write_field_end()?;
     if let Some(ref fld_var) = self.measurement_alias {
       o_prot.write_field_begin(&TFieldIdentifier::new("measurementAlias", TType::List, 7))?;
@@ -3721,8 +3895,8 @@ impl TSRawDataQueryReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_58 = i_prot.read_string()?;
-            val.push(list_elem_58);
+            let list_elem_64 = i_prot.read_string()?;
+            val.push(list_elem_64);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -3868,8 +4042,8 @@ impl TSLastDataQueryReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_59 = i_prot.read_string()?;
-            val.push(list_elem_59);
+            let list_elem_65 = i_prot.read_string()?;
+            val.push(list_elem_65);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -4012,8 +4186,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_60 = i_prot.read_string()?;
-            val.push(list_elem_60);
+            let list_elem_66 = i_prot.read_string()?;
+            val.push(list_elem_66);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -4022,8 +4196,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_61 = i_prot.read_i32()?;
-            val.push(list_elem_61);
+            let list_elem_67 = i_prot.read_i32()?;
+            val.push(list_elem_67);
           }
           i_prot.read_list_end()?;
           f_3 = Some(val);
@@ -4032,8 +4206,8 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_62 = i_prot.read_i32()?;
-            val.push(list_elem_62);
+            let list_elem_68 = i_prot.read_i32()?;
+            val.push(list_elem_68);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -4042,47 +4216,13 @@ impl TSCreateMultiTimeseriesReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_63 = i_prot.read_i32()?;
-            val.push(list_elem_63);
+            let list_elem_69 = i_prot.read_i32()?;
+            val.push(list_elem_69);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
         },
         6 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let map_ident = i_prot.read_map_begin()?;
-            let mut list_elem_64: BTreeMap<String, String> = BTreeMap::new();
-            for _ in 0..map_ident.size {
-              let map_key_65 = i_prot.read_string()?;
-              let map_val_66 = i_prot.read_string()?;
-              list_elem_64.insert(map_key_65, map_val_66);
-            }
-            i_prot.read_map_end()?;
-            val.push(list_elem_64);
-          }
-          i_prot.read_list_end()?;
-          f_6 = Some(val);
-        },
-        7 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let map_ident = i_prot.read_map_begin()?;
-            let mut list_elem_67: BTreeMap<String, String> = BTreeMap::new();
-            for _ in 0..map_ident.size {
-              let map_key_68 = i_prot.read_string()?;
-              let map_val_69 = i_prot.read_string()?;
-              list_elem_67.insert(map_key_68, map_val_69);
-            }
-            i_prot.read_map_end()?;
-            val.push(list_elem_67);
-          }
-          i_prot.read_list_end()?;
-          f_7 = Some(val);
-        },
-        8 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
@@ -4097,14 +4237,48 @@ impl TSCreateMultiTimeseriesReq {
             val.push(list_elem_70);
           }
           i_prot.read_list_end()?;
+          f_6 = Some(val);
+        },
+        7 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let map_ident = i_prot.read_map_begin()?;
+            let mut list_elem_73: BTreeMap<String, String> = BTreeMap::new();
+            for _ in 0..map_ident.size {
+              let map_key_74 = i_prot.read_string()?;
+              let map_val_75 = i_prot.read_string()?;
+              list_elem_73.insert(map_key_74, map_val_75);
+            }
+            i_prot.read_map_end()?;
+            val.push(list_elem_73);
+          }
+          i_prot.read_list_end()?;
+          f_7 = Some(val);
+        },
+        8 => {
+          let list_ident = i_prot.read_list_begin()?;
+          let mut val: Vec<BTreeMap<String, String>> = Vec::with_capacity(list_ident.size as usize);
+          for _ in 0..list_ident.size {
+            let map_ident = i_prot.read_map_begin()?;
+            let mut list_elem_76: BTreeMap<String, String> = BTreeMap::new();
+            for _ in 0..map_ident.size {
+              let map_key_77 = i_prot.read_string()?;
+              let map_val_78 = i_prot.read_string()?;
+              list_elem_76.insert(map_key_77, map_val_78);
+            }
+            i_prot.read_map_end()?;
+            val.push(list_elem_76);
+          }
+          i_prot.read_list_end()?;
           f_8 = Some(val);
         },
         9 => {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_73 = i_prot.read_string()?;
-            val.push(list_elem_73);
+            let list_elem_79 = i_prot.read_string()?;
+            val.push(list_elem_79);
           }
           i_prot.read_list_end()?;
           f_9 = Some(val);
@@ -4284,8 +4458,8 @@ impl ServerProperties {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_74 = i_prot.read_string()?;
-            val.push(list_elem_74);
+            let list_elem_80 = i_prot.read_string()?;
+            val.push(list_elem_80);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -4487,37 +4661,22 @@ impl TSSetSchemaTemplateReq {
 pub struct TSCreateSchemaTemplateReq {
   pub session_id: i64,
   pub name: String,
-  pub schema_names: Option<Vec<String>>,
-  pub measurements: Vec<Vec<String>>,
-  pub data_types: Vec<Vec<i32>>,
-  pub encodings: Vec<Vec<i32>>,
-  pub compressors: Vec<Vec<i32>>,
-  pub serialized_template: Option<Vec<u8>>,
+  pub serialized_template: Vec<u8>,
 }
 
 impl TSCreateSchemaTemplateReq {
-  pub fn new<F3, F8>(session_id: i64, name: String, schema_names: F3, measurements: Vec<Vec<String>>, data_types: Vec<Vec<i32>>, encodings: Vec<Vec<i32>>, compressors: Vec<Vec<i32>>, serialized_template: F8) -> TSCreateSchemaTemplateReq where F3: Into<Option<Vec<String>>>, F8: Into<Option<Vec<u8>>> {
+  pub fn new(session_id: i64, name: String, serialized_template: Vec<u8>) -> TSCreateSchemaTemplateReq {
     TSCreateSchemaTemplateReq {
       session_id,
       name,
-      schema_names: schema_names.into(),
-      measurements,
-      data_types,
-      encodings,
-      compressors,
-      serialized_template: serialized_template.into(),
+      serialized_template,
     }
   }
   pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSCreateSchemaTemplateReq> {
     i_prot.read_struct_begin()?;
     let mut f_1: Option<i64> = None;
     let mut f_2: Option<String> = None;
-    let mut f_3: Option<Vec<String>> = None;
-    let mut f_4: Option<Vec<Vec<String>>> = None;
-    let mut f_5: Option<Vec<Vec<i32>>> = None;
-    let mut f_6: Option<Vec<Vec<i32>>> = None;
-    let mut f_7: Option<Vec<Vec<i32>>> = None;
-    let mut f_8: Option<Vec<u8>> = None;
+    let mut f_3: Option<Vec<u8>> = None;
     loop {
       let field_ident = i_prot.read_field_begin()?;
       if field_ident.field_type == TType::Stop {
@@ -4534,82 +4693,8 @@ impl TSCreateSchemaTemplateReq {
           f_2 = Some(val);
         },
         3 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_elem_75 = i_prot.read_string()?;
-            val.push(list_elem_75);
-          }
-          i_prot.read_list_end()?;
-          f_3 = Some(val);
-        },
-        4 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<Vec<String>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_76: Vec<String> = Vec::with_capacity(list_ident.size as usize);
-            for _ in 0..list_ident.size {
-              let list_elem_77 = i_prot.read_string()?;
-              list_elem_76.push(list_elem_77);
-            }
-            i_prot.read_list_end()?;
-            val.push(list_elem_76);
-          }
-          i_prot.read_list_end()?;
-          f_4 = Some(val);
-        },
-        5 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_78: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
-            for _ in 0..list_ident.size {
-              let list_elem_79 = i_prot.read_i32()?;
-              list_elem_78.push(list_elem_79);
-            }
-            i_prot.read_list_end()?;
-            val.push(list_elem_78);
-          }
-          i_prot.read_list_end()?;
-          f_5 = Some(val);
-        },
-        6 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_80: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
-            for _ in 0..list_ident.size {
-              let list_elem_81 = i_prot.read_i32()?;
-              list_elem_80.push(list_elem_81);
-            }
-            i_prot.read_list_end()?;
-            val.push(list_elem_80);
-          }
-          i_prot.read_list_end()?;
-          f_6 = Some(val);
-        },
-        7 => {
-          let list_ident = i_prot.read_list_begin()?;
-          let mut val: Vec<Vec<i32>> = Vec::with_capacity(list_ident.size as usize);
-          for _ in 0..list_ident.size {
-            let list_ident = i_prot.read_list_begin()?;
-            let mut list_elem_82: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
-            for _ in 0..list_ident.size {
-              let list_elem_83 = i_prot.read_i32()?;
-              list_elem_82.push(list_elem_83);
-            }
-            i_prot.read_list_end()?;
-            val.push(list_elem_82);
-          }
-          i_prot.read_list_end()?;
-          f_7 = Some(val);
-        },
-        8 => {
           let val = i_prot.read_bytes()?;
-          f_8 = Some(val);
+          f_3 = Some(val);
         },
         _ => {
           i_prot.skip(field_ident.field_type)?;
@@ -4620,19 +4705,11 @@ impl TSCreateSchemaTemplateReq {
     i_prot.read_struct_end()?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.session_id", &f_1)?;
     verify_required_field_exists("TSCreateSchemaTemplateReq.name", &f_2)?;
-    verify_required_field_exists("TSCreateSchemaTemplateReq.measurements", &f_4)?;
-    verify_required_field_exists("TSCreateSchemaTemplateReq.data_types", &f_5)?;
-    verify_required_field_exists("TSCreateSchemaTemplateReq.encodings", &f_6)?;
-    verify_required_field_exists("TSCreateSchemaTemplateReq.compressors", &f_7)?;
+    verify_required_field_exists("TSCreateSchemaTemplateReq.serialized_template", &f_3)?;
     let ret = TSCreateSchemaTemplateReq {
       session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
       name: f_2.expect("auto-generated code should have checked for presence of required fields"),
-      schema_names: f_3,
-      measurements: f_4.expect("auto-generated code should have checked for presence of required fields"),
-      data_types: f_5.expect("auto-generated code should have checked for presence of required fields"),
-      encodings: f_6.expect("auto-generated code should have checked for presence of required fields"),
-      compressors: f_7.expect("auto-generated code should have checked for presence of required fields"),
-      serialized_template: f_8,
+      serialized_template: f_3.expect("auto-generated code should have checked for presence of required fields"),
     };
     Ok(ret)
   }
@@ -4645,64 +4722,9 @@ impl TSCreateSchemaTemplateReq {
     o_prot.write_field_begin(&TFieldIdentifier::new("name", TType::String, 2))?;
     o_prot.write_string(&self.name)?;
     o_prot.write_field_end()?;
-    if let Some(ref fld_var) = self.schema_names {
-      o_prot.write_field_begin(&TFieldIdentifier::new("schemaNames", TType::List, 3))?;
-      o_prot.write_list_begin(&TListIdentifier::new(TType::String, fld_var.len() as i32))?;
-      for e in fld_var {
-        o_prot.write_string(e)?;
-      }
-      o_prot.write_list_end()?;
-      o_prot.write_field_end()?
-    }
-    o_prot.write_field_begin(&TFieldIdentifier::new("measurements", TType::List, 4))?;
-    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.measurements.len() as i32))?;
-    for e in &self.measurements {
-      o_prot.write_list_begin(&TListIdentifier::new(TType::String, e.len() as i32))?;
-      for e in e {
-        o_prot.write_string(e)?;
-      }
-      o_prot.write_list_end()?;
-    }
-    o_prot.write_list_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("serializedTemplate", TType::String, 3))?;
+    o_prot.write_bytes(&self.serialized_template)?;
     o_prot.write_field_end()?;
-    o_prot.write_field_begin(&TFieldIdentifier::new("dataTypes", TType::List, 5))?;
-    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.data_types.len() as i32))?;
-    for e in &self.data_types {
-      o_prot.write_list_begin(&TListIdentifier::new(TType::I32, e.len() as i32))?;
-      for e in e {
-        o_prot.write_i32(*e)?;
-      }
-      o_prot.write_list_end()?;
-    }
-    o_prot.write_list_end()?;
-    o_prot.write_field_end()?;
-    o_prot.write_field_begin(&TFieldIdentifier::new("encodings", TType::List, 6))?;
-    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.encodings.len() as i32))?;
-    for e in &self.encodings {
-      o_prot.write_list_begin(&TListIdentifier::new(TType::I32, e.len() as i32))?;
-      for e in e {
-        o_prot.write_i32(*e)?;
-      }
-      o_prot.write_list_end()?;
-    }
-    o_prot.write_list_end()?;
-    o_prot.write_field_end()?;
-    o_prot.write_field_begin(&TFieldIdentifier::new("compressors", TType::List, 7))?;
-    o_prot.write_list_begin(&TListIdentifier::new(TType::List, self.compressors.len() as i32))?;
-    for e in &self.compressors {
-      o_prot.write_list_begin(&TListIdentifier::new(TType::I32, e.len() as i32))?;
-      for e in e {
-        o_prot.write_i32(*e)?;
-      }
-      o_prot.write_list_end()?;
-    }
-    o_prot.write_list_end()?;
-    o_prot.write_field_end()?;
-    if let Some(ref fld_var) = self.serialized_template {
-      o_prot.write_field_begin(&TFieldIdentifier::new("serializedTemplate", TType::String, 8))?;
-      o_prot.write_bytes(fld_var)?;
-      o_prot.write_field_end()?
-    }
     o_prot.write_field_stop()?;
     o_prot.write_struct_end()
   }
@@ -4767,8 +4789,8 @@ impl TSAppendSchemaTemplateReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_84 = i_prot.read_string()?;
-            val.push(list_elem_84);
+            let list_elem_81 = i_prot.read_string()?;
+            val.push(list_elem_81);
           }
           i_prot.read_list_end()?;
           f_4 = Some(val);
@@ -4777,8 +4799,8 @@ impl TSAppendSchemaTemplateReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_85 = i_prot.read_i32()?;
-            val.push(list_elem_85);
+            let list_elem_82 = i_prot.read_i32()?;
+            val.push(list_elem_82);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -4787,8 +4809,8 @@ impl TSAppendSchemaTemplateReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_86 = i_prot.read_i32()?;
-            val.push(list_elem_86);
+            let list_elem_83 = i_prot.read_i32()?;
+            val.push(list_elem_83);
           }
           i_prot.read_list_end()?;
           f_6 = Some(val);
@@ -4797,8 +4819,8 @@ impl TSAppendSchemaTemplateReq {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<i32> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_87 = i_prot.read_i32()?;
-            val.push(list_elem_87);
+            let list_elem_84 = i_prot.read_i32()?;
+            val.push(list_elem_84);
           }
           i_prot.read_list_end()?;
           f_7 = Some(val);
@@ -5097,8 +5119,8 @@ impl TSQueryTemplateResp {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_88 = i_prot.read_string()?;
-            val.push(list_elem_88);
+            let list_elem_85 = i_prot.read_string()?;
+            val.push(list_elem_85);
           }
           i_prot.read_list_end()?;
           f_5 = Some(val);
@@ -5232,6 +5254,71 @@ impl TSUnsetSchemaTemplateReq {
 }
 
 //
+// TSDropSchemaTemplateReq
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TSDropSchemaTemplateReq {
+  pub session_id: i64,
+  pub template_name: String,
+}
+
+impl TSDropSchemaTemplateReq {
+  pub fn new(session_id: i64, template_name: String) -> TSDropSchemaTemplateReq {
+    TSDropSchemaTemplateReq {
+      session_id,
+      template_name,
+    }
+  }
+  pub fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSDropSchemaTemplateReq> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<i64> = None;
+    let mut f_2: Option<String> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = i_prot.read_i64()?;
+          f_1 = Some(val);
+        },
+        2 => {
+          let val = i_prot.read_string()?;
+          f_2 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSDropSchemaTemplateReq.session_id", &f_1)?;
+    verify_required_field_exists("TSDropSchemaTemplateReq.template_name", &f_2)?;
+    let ret = TSDropSchemaTemplateReq {
+      session_id: f_1.expect("auto-generated code should have checked for presence of required fields"),
+      template_name: f_2.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  pub fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSDropSchemaTemplateReq");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("sessionId", TType::I64, 1))?;
+    o_prot.write_i64(self.session_id)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("templateName", TType::String, 2))?;
+    o_prot.write_string(&self.template_name)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
 // TSIService service client
 //
 
@@ -5261,6 +5348,7 @@ pub trait TTSIServiceSyncClient {
   fn insert_tablets(&mut self, req: TSInsertTabletsReq) -> thrift::Result<TSStatus>;
   fn insert_records(&mut self, req: TSInsertRecordsReq) -> thrift::Result<TSStatus>;
   fn insert_records_of_one_device(&mut self, req: TSInsertRecordsOfOneDeviceReq) -> thrift::Result<TSStatus>;
+  fn insert_string_records_of_one_device(&mut self, req: TSInsertStringRecordsOfOneDeviceReq) -> thrift::Result<TSStatus>;
   fn insert_string_records(&mut self, req: TSInsertStringRecordsReq) -> thrift::Result<TSStatus>;
   fn test_insert_tablet(&mut self, req: TSInsertTabletReq) -> thrift::Result<TSStatus>;
   fn test_insert_tablets(&mut self, req: TSInsertTabletsReq) -> thrift::Result<TSStatus>;
@@ -5279,6 +5367,7 @@ pub trait TTSIServiceSyncClient {
   fn query_schema_template(&mut self, req: TSQueryTemplateReq) -> thrift::Result<TSQueryTemplateResp>;
   fn set_schema_template(&mut self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus>;
   fn unset_schema_template(&mut self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn drop_schema_template(&mut self, req: TSDropSchemaTemplateReq) -> thrift::Result<TSStatus>;
 }
 
 pub trait TTSIServiceSyncClientMarker {}
@@ -5980,6 +6069,33 @@ impl <C: TThriftClient + TTSIServiceSyncClientMarker> TTSIServiceSyncClient for 
       result.ok_or()
     }
   }
+  fn insert_string_records_of_one_device(&mut self, req: TSInsertStringRecordsOfOneDeviceReq) -> thrift::Result<TSStatus> {
+    (
+      {
+        self.increment_sequence_number();
+        let message_ident = TMessageIdentifier::new("insertStringRecordsOfOneDevice", TMessageType::Call, self.sequence_number());
+        let call_args = TSIServiceInsertStringRecordsOfOneDeviceArgs { req };
+        self.o_prot_mut().write_message_begin(&message_ident)?;
+        call_args.write_to_out_protocol(self.o_prot_mut())?;
+        self.o_prot_mut().write_message_end()?;
+        self.o_prot_mut().flush()
+      }
+    )?;
+    {
+      let message_ident = self.i_prot_mut().read_message_begin()?;
+      verify_expected_sequence_number(self.sequence_number(), message_ident.sequence_number)?;
+      verify_expected_service_call("insertStringRecordsOfOneDevice", &message_ident.name)?;
+      if message_ident.message_type == TMessageType::Exception {
+        let remote_error = thrift::Error::read_application_error_from_in_protocol(self.i_prot_mut())?;
+        self.i_prot_mut().read_message_end()?;
+        return Err(thrift::Error::Application(remote_error))
+      }
+      verify_expected_message_type(TMessageType::Reply, message_ident.message_type)?;
+      let result = TSIServiceInsertStringRecordsOfOneDeviceResult::read_from_in_protocol(self.i_prot_mut())?;
+      self.i_prot_mut().read_message_end()?;
+      result.ok_or()
+    }
+  }
   fn insert_string_records(&mut self, req: TSInsertStringRecordsReq) -> thrift::Result<TSStatus> {
     (
       {
@@ -6466,6 +6582,33 @@ impl <C: TThriftClient + TTSIServiceSyncClientMarker> TTSIServiceSyncClient for 
       result.ok_or()
     }
   }
+  fn drop_schema_template(&mut self, req: TSDropSchemaTemplateReq) -> thrift::Result<TSStatus> {
+    (
+      {
+        self.increment_sequence_number();
+        let message_ident = TMessageIdentifier::new("dropSchemaTemplate", TMessageType::Call, self.sequence_number());
+        let call_args = TSIServiceDropSchemaTemplateArgs { req };
+        self.o_prot_mut().write_message_begin(&message_ident)?;
+        call_args.write_to_out_protocol(self.o_prot_mut())?;
+        self.o_prot_mut().write_message_end()?;
+        self.o_prot_mut().flush()
+      }
+    )?;
+    {
+      let message_ident = self.i_prot_mut().read_message_begin()?;
+      verify_expected_sequence_number(self.sequence_number(), message_ident.sequence_number)?;
+      verify_expected_service_call("dropSchemaTemplate", &message_ident.name)?;
+      if message_ident.message_type == TMessageType::Exception {
+        let remote_error = thrift::Error::read_application_error_from_in_protocol(self.i_prot_mut())?;
+        self.i_prot_mut().read_message_end()?;
+        return Err(thrift::Error::Application(remote_error))
+      }
+      verify_expected_message_type(TMessageType::Reply, message_ident.message_type)?;
+      let result = TSIServiceDropSchemaTemplateResult::read_from_in_protocol(self.i_prot_mut())?;
+      self.i_prot_mut().read_message_end()?;
+      result.ok_or()
+    }
+  }
 }
 
 //
@@ -6498,6 +6641,7 @@ pub trait TSIServiceSyncHandler {
   fn handle_insert_tablets(&self, req: TSInsertTabletsReq) -> thrift::Result<TSStatus>;
   fn handle_insert_records(&self, req: TSInsertRecordsReq) -> thrift::Result<TSStatus>;
   fn handle_insert_records_of_one_device(&self, req: TSInsertRecordsOfOneDeviceReq) -> thrift::Result<TSStatus>;
+  fn handle_insert_string_records_of_one_device(&self, req: TSInsertStringRecordsOfOneDeviceReq) -> thrift::Result<TSStatus>;
   fn handle_insert_string_records(&self, req: TSInsertStringRecordsReq) -> thrift::Result<TSStatus>;
   fn handle_test_insert_tablet(&self, req: TSInsertTabletReq) -> thrift::Result<TSStatus>;
   fn handle_test_insert_tablets(&self, req: TSInsertTabletsReq) -> thrift::Result<TSStatus>;
@@ -6516,6 +6660,7 @@ pub trait TSIServiceSyncHandler {
   fn handle_query_schema_template(&self, req: TSQueryTemplateReq) -> thrift::Result<TSQueryTemplateResp>;
   fn handle_set_schema_template(&self, req: TSSetSchemaTemplateReq) -> thrift::Result<TSStatus>;
   fn handle_unset_schema_template(&self, req: TSUnsetSchemaTemplateReq) -> thrift::Result<TSStatus>;
+  fn handle_drop_schema_template(&self, req: TSDropSchemaTemplateReq) -> thrift::Result<TSStatus>;
 }
 
 pub struct TSIServiceSyncProcessor<H: TSIServiceSyncHandler> {
@@ -6603,6 +6748,9 @@ impl <H: TSIServiceSyncHandler> TSIServiceSyncProcessor<H> {
   fn process_insert_records_of_one_device(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     TTSIServiceProcessFunctions::process_insert_records_of_one_device(&self.handler, incoming_sequence_number, i_prot, o_prot)
   }
+  fn process_insert_string_records_of_one_device(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    TTSIServiceProcessFunctions::process_insert_string_records_of_one_device(&self.handler, incoming_sequence_number, i_prot, o_prot)
+  }
   fn process_insert_string_records(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     TTSIServiceProcessFunctions::process_insert_string_records(&self.handler, incoming_sequence_number, i_prot, o_prot)
   }
@@ -6656,6 +6804,9 @@ impl <H: TSIServiceSyncHandler> TSIServiceSyncProcessor<H> {
   }
   fn process_unset_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     TTSIServiceProcessFunctions::process_unset_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
+  }
+  fn process_drop_schema_template(&self, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    TTSIServiceProcessFunctions::process_drop_schema_template(&self.handler, incoming_sequence_number, i_prot, o_prot)
   }
 }
 
@@ -7587,6 +7738,43 @@ impl TTSIServiceProcessFunctions {
       },
     }
   }
+  pub fn process_insert_string_records_of_one_device<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let args = TSIServiceInsertStringRecordsOfOneDeviceArgs::read_from_in_protocol(i_prot)?;
+    match handler.handle_insert_string_records_of_one_device(args.req) {
+      Ok(handler_return) => {
+        let message_ident = TMessageIdentifier::new("insertStringRecordsOfOneDevice", TMessageType::Reply, incoming_sequence_number);
+        o_prot.write_message_begin(&message_ident)?;
+        let ret = TSIServiceInsertStringRecordsOfOneDeviceResult { result_value: Some(handler_return) };
+        ret.write_to_out_protocol(o_prot)?;
+        o_prot.write_message_end()?;
+        o_prot.flush()
+      },
+      Err(e) => {
+        match e {
+          thrift::Error::Application(app_err) => {
+            let message_ident = TMessageIdentifier::new("insertStringRecordsOfOneDevice", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&app_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+          _ => {
+            let ret_err = {
+              ApplicationError::new(
+                ApplicationErrorKind::Unknown,
+                e.to_string()
+              )
+            };
+            let message_ident = TMessageIdentifier::new("insertStringRecordsOfOneDevice", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&ret_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+        }
+      },
+    }
+  }
   pub fn process_insert_string_records<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
     let args = TSIServiceInsertStringRecordsArgs::read_from_in_protocol(i_prot)?;
     match handler.handle_insert_string_records(args.req) {
@@ -8253,6 +8441,43 @@ impl TTSIServiceProcessFunctions {
       },
     }
   }
+  pub fn process_drop_schema_template<H: TSIServiceSyncHandler>(handler: &H, incoming_sequence_number: i32, i_prot: &mut dyn TInputProtocol, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let args = TSIServiceDropSchemaTemplateArgs::read_from_in_protocol(i_prot)?;
+    match handler.handle_drop_schema_template(args.req) {
+      Ok(handler_return) => {
+        let message_ident = TMessageIdentifier::new("dropSchemaTemplate", TMessageType::Reply, incoming_sequence_number);
+        o_prot.write_message_begin(&message_ident)?;
+        let ret = TSIServiceDropSchemaTemplateResult { result_value: Some(handler_return) };
+        ret.write_to_out_protocol(o_prot)?;
+        o_prot.write_message_end()?;
+        o_prot.flush()
+      },
+      Err(e) => {
+        match e {
+          thrift::Error::Application(app_err) => {
+            let message_ident = TMessageIdentifier::new("dropSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&app_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+          _ => {
+            let ret_err = {
+              ApplicationError::new(
+                ApplicationErrorKind::Unknown,
+                e.to_string()
+              )
+            };
+            let message_ident = TMessageIdentifier::new("dropSchemaTemplate", TMessageType::Exception, incoming_sequence_number);
+            o_prot.write_message_begin(&message_ident)?;
+            thrift::Error::write_application_error_to_out_protocol(&ret_err, o_prot)?;
+            o_prot.write_message_end()?;
+            o_prot.flush()
+          },
+        }
+      },
+    }
+  }
 }
 
 impl <H: TSIServiceSyncHandler> TProcessor for TSIServiceSyncProcessor<H> {
@@ -8334,6 +8559,9 @@ impl <H: TSIServiceSyncHandler> TProcessor for TSIServiceSyncProcessor<H> {
       "insertRecordsOfOneDevice" => {
         self.process_insert_records_of_one_device(message_ident.sequence_number, i_prot, o_prot)
       },
+      "insertStringRecordsOfOneDevice" => {
+        self.process_insert_string_records_of_one_device(message_ident.sequence_number, i_prot, o_prot)
+      },
       "insertStringRecords" => {
         self.process_insert_string_records(message_ident.sequence_number, i_prot, o_prot)
       },
@@ -8387,6 +8615,9 @@ impl <H: TSIServiceSyncHandler> TProcessor for TSIServiceSyncProcessor<H> {
       },
       "unsetSchemaTemplate" => {
         self.process_unset_schema_template(message_ident.sequence_number, i_prot, o_prot)
+      },
+      "dropSchemaTemplate" => {
+        self.process_drop_schema_template(message_ident.sequence_number, i_prot, o_prot)
       },
       method => {
         Err(
@@ -10319,8 +10550,8 @@ impl TSIServiceDeleteTimeseriesArgs {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_89 = i_prot.read_string()?;
-            val.push(list_elem_89);
+            let list_elem_86 = i_prot.read_string()?;
+            val.push(list_elem_86);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -10451,8 +10682,8 @@ impl TSIServiceDeleteStorageGroupsArgs {
           let list_ident = i_prot.read_list_begin()?;
           let mut val: Vec<String> = Vec::with_capacity(list_ident.size as usize);
           for _ in 0..list_ident.size {
-            let list_elem_90 = i_prot.read_string()?;
-            val.push(list_elem_90);
+            let list_elem_87 = i_prot.read_string()?;
+            val.push(list_elem_87);
           }
           i_prot.read_list_end()?;
           f_2 = Some(val);
@@ -11212,6 +11443,117 @@ impl TSIServiceInsertRecordsOfOneDeviceResult {
           ApplicationError::new(
             ApplicationErrorKind::MissingResult,
             "no result received for TSIServiceInsertRecordsOfOneDevice"
+          )
+        )
+      )
+    }
+  }
+}
+
+//
+// TSIServiceInsertStringRecordsOfOneDeviceArgs
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceInsertStringRecordsOfOneDeviceArgs {
+  req: TSInsertStringRecordsOfOneDeviceReq,
+}
+
+impl TSIServiceInsertStringRecordsOfOneDeviceArgs {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceInsertStringRecordsOfOneDeviceArgs> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSInsertStringRecordsOfOneDeviceReq> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSInsertStringRecordsOfOneDeviceReq::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSIServiceInsertStringRecordsOfOneDeviceArgs.req", &f_1)?;
+    let ret = TSIServiceInsertStringRecordsOfOneDeviceArgs {
+      req: f_1.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("insertStringRecordsOfOneDevice_args");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("req", TType::Struct, 1))?;
+    self.req.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSIServiceInsertStringRecordsOfOneDeviceResult
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceInsertStringRecordsOfOneDeviceResult {
+  result_value: Option<TSStatus>,
+}
+
+impl TSIServiceInsertStringRecordsOfOneDeviceResult {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceInsertStringRecordsOfOneDeviceResult> {
+    i_prot.read_struct_begin()?;
+    let mut f_0: Option<TSStatus> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        0 => {
+          let val = TSStatus::read_from_in_protocol(i_prot)?;
+          f_0 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    let ret = TSIServiceInsertStringRecordsOfOneDeviceResult {
+      result_value: f_0,
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSIServiceInsertStringRecordsOfOneDeviceResult");
+    o_prot.write_struct_begin(&struct_ident)?;
+    if let Some(ref fld_var) = self.result_value {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result_value", TType::Struct, 0))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+  fn ok_or(self) -> thrift::Result<TSStatus> {
+    if self.result_value.is_some() {
+      Ok(self.result_value.unwrap())
+    } else {
+      Err(
+        thrift::Error::Application(
+          ApplicationError::new(
+            ApplicationErrorKind::MissingResult,
+            "no result received for TSIServiceInsertStringRecordsOfOneDevice"
           )
         )
       )
@@ -13210,6 +13552,117 @@ impl TSIServiceUnsetSchemaTemplateResult {
           ApplicationError::new(
             ApplicationErrorKind::MissingResult,
             "no result received for TSIServiceUnsetSchemaTemplate"
+          )
+        )
+      )
+    }
+  }
+}
+
+//
+// TSIServiceDropSchemaTemplateArgs
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceDropSchemaTemplateArgs {
+  req: TSDropSchemaTemplateReq,
+}
+
+impl TSIServiceDropSchemaTemplateArgs {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceDropSchemaTemplateArgs> {
+    i_prot.read_struct_begin()?;
+    let mut f_1: Option<TSDropSchemaTemplateReq> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        1 => {
+          let val = TSDropSchemaTemplateReq::read_from_in_protocol(i_prot)?;
+          f_1 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    verify_required_field_exists("TSIServiceDropSchemaTemplateArgs.req", &f_1)?;
+    let ret = TSIServiceDropSchemaTemplateArgs {
+      req: f_1.expect("auto-generated code should have checked for presence of required fields"),
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("dropSchemaTemplate_args");
+    o_prot.write_struct_begin(&struct_ident)?;
+    o_prot.write_field_begin(&TFieldIdentifier::new("req", TType::Struct, 1))?;
+    self.req.write_to_out_protocol(o_prot)?;
+    o_prot.write_field_end()?;
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+}
+
+//
+// TSIServiceDropSchemaTemplateResult
+//
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct TSIServiceDropSchemaTemplateResult {
+  result_value: Option<TSStatus>,
+}
+
+impl TSIServiceDropSchemaTemplateResult {
+  fn read_from_in_protocol(i_prot: &mut dyn TInputProtocol) -> thrift::Result<TSIServiceDropSchemaTemplateResult> {
+    i_prot.read_struct_begin()?;
+    let mut f_0: Option<TSStatus> = None;
+    loop {
+      let field_ident = i_prot.read_field_begin()?;
+      if field_ident.field_type == TType::Stop {
+        break;
+      }
+      let field_id = field_id(&field_ident)?;
+      match field_id {
+        0 => {
+          let val = TSStatus::read_from_in_protocol(i_prot)?;
+          f_0 = Some(val);
+        },
+        _ => {
+          i_prot.skip(field_ident.field_type)?;
+        },
+      };
+      i_prot.read_field_end()?;
+    }
+    i_prot.read_struct_end()?;
+    let ret = TSIServiceDropSchemaTemplateResult {
+      result_value: f_0,
+    };
+    Ok(ret)
+  }
+  fn write_to_out_protocol(&self, o_prot: &mut dyn TOutputProtocol) -> thrift::Result<()> {
+    let struct_ident = TStructIdentifier::new("TSIServiceDropSchemaTemplateResult");
+    o_prot.write_struct_begin(&struct_ident)?;
+    if let Some(ref fld_var) = self.result_value {
+      o_prot.write_field_begin(&TFieldIdentifier::new("result_value", TType::Struct, 0))?;
+      fld_var.write_to_out_protocol(o_prot)?;
+      o_prot.write_field_end()?
+    }
+    o_prot.write_field_stop()?;
+    o_prot.write_struct_end()
+  }
+  fn ok_or(self) -> thrift::Result<TSStatus> {
+    if self.result_value.is_some() {
+      Ok(self.result_value.unwrap())
+    } else {
+      Err(
+        thrift::Error::Application(
+          ApplicationError::new(
+            ApplicationErrorKind::MissingResult,
+            "no result received for TSIServiceDropSchemaTemplate"
           )
         )
       )

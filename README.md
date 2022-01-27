@@ -31,42 +31,42 @@ Add `iotdb` to your `Cargo.toml`
 
 ```toml
 [dependencies]
-iotdb = "0.0.6"
+iotdb = "0.0.7"
+simplelog = "0.11.0"
 ```
 
 ## Example
 
 ```rust
 use chrono::Local;
-use thrift::Error;
 
-use iotdb::common::{Compressor, DataType, Encoding};
-use iotdb::{ConfigBuilder, Session};
+use iotdb::*;
 
-fn main() -> Result<(), Error> {
-    let config = ConfigBuilder::new()
-        .endpoint("127.0.0.1", "6667")
+fn main() -> Result<(), anyhow::Error> {
+    debug(false);
+
+    let config = iotdb::ConfigBuilder::new()
+        .endpoint("localhost:6667")
         .user("root")
         .password("root")
         .time_zone("UTC+8")
-        // .debug(true)
         .build();
 
     // open session
-    let mut session = Session::new(config).open()?;
+    let mut session = Session::connect(config)?;
     println!("time_zone: {}", session.time_zone()?);
     session.delete_storage_group("root.ln")?;
     session.set_storage_group("root.ln")?;
     session.create_time_series(
         "root.ln.wf01.wt01.temperature",
-        DataType::INT64,
+        DataType::FLOAT,
         Encoding::default(),
         Compressor::default(),
     )?;
 
     session.create_time_series(
-        "root.ln.wf01.wt01.humidity",
-        DataType::INT64,
+        "root.ln.wf01.wt01.status",
+        DataType::BOOLEAN,
         Encoding::default(),
         Compressor::default(),
     )?;
@@ -102,9 +102,27 @@ fn main() -> Result<(), Error> {
     )?;
     session.sql("select * from root.ln")?.show();
 
+    // DF (TODO)
+    let df = session.sql("select * from root.ln")?.to_df()?;
+    println!("IoTDB DF is empty: {}", df.is_empty());
+
     session.close()?;
 
     Ok(())
+}
+
+fn debug(enable: bool) {
+    use simplelog::*;
+    let mut log_level = LevelFilter::Info;
+    if enable {
+        log_level = LevelFilter::Debug;
+    }
+    let _ = CombinedLogger::init(vec![TermLogger::new(
+        log_level,
+        Default::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )]);
 }
 ```
 
@@ -133,7 +151,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```shell
 git clone https://github.com/francis-du/iotdb-rs.git
 
-cargo run --example main
+cargo run --example iotdb
 ```
 
 ## LICENSE

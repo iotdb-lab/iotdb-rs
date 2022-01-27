@@ -85,19 +85,10 @@ impl RecordBatch {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DataSet {
     record_batch: RecordBatch,
     ignore_time_stamp: Option<bool>,
-}
-
-impl Default for DataSet {
-    fn default() -> Self {
-        Self {
-            record_batch: RecordBatch::default(),
-            ignore_time_stamp: None,
-        }
-    }
 }
 
 impl DataSet {
