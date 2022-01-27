@@ -100,18 +100,17 @@
 #[macro_use]
 extern crate prettytable;
 
+pub use chrono;
+pub use polars;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 use std::str::FromStr;
+pub use thrift;
 
 use anyhow::bail;
-pub use chrono;
 use chrono::{Local, Utc};
-pub use log;
 use log::{debug, error, info};
 use mimalloc::MiMalloc;
-pub use polars;
-pub use thrift;
 use thrift::protocol::{
     TBinaryInputProtocol, TBinaryOutputProtocol, TCompactInputProtocol, TCompactOutputProtocol,
     TInputProtocol, TOutputProtocol,
