@@ -121,6 +121,7 @@ extern crate prettytable;
 
 use std::collections::BTreeMap;
 use std::net::TcpStream;
+use std::ptr::addr_of_mut;
 use std::str::FromStr;
 
 use anyhow::bail;
@@ -133,19 +134,20 @@ pub use thrift;
 use thrift::protocol::*;
 use thrift::transport::*;
 
+use crate::client::*;
+use crate::common::*;
 use crate::ds::DataSet;
-use crate::rpc::*;
 
+mod client;
+mod common;
 mod ds;
 mod errors;
-mod rpc;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
-
-type ClientType = TSIServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
-
 const SUCCESS_CODE: i32 = 200;
+
+type ClientType = IClientRPCServiceSyncClient<Box<dyn TInputProtocol>, Box<dyn TOutputProtocol>>;
 
 /// IotDB datatype enum
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -511,6 +513,7 @@ impl ConfigBuilder {
 }
 
 /// IotDB Session
+
 pub struct Session {
     client: ClientType,
     config: Config,
@@ -544,7 +547,7 @@ impl Session {
             debug!("Create TBinaryProtocol client",);
         }
 
-        let mut client = TSIServiceSyncClient::new(protocol_in, protocol_out);
+        let mut client = IClientRPCServiceSyncClient::new(protocol_in, protocol_out);
 
         let open_req = TSOpenSessionReq::new(
             config.protocol_version,
@@ -1227,8 +1230,9 @@ impl Session {
             start_time,
             end_time,
             self.statement_id,
-            self.config.enable_redirect_query,
-            false,
+            Some(self.config.enable_redirect_query),
+            Some(false),
+            Some(self.config.timeout),
         );
         let resp = self.client.execute_raw_data_query(req)?;
         if self.is_success(&resp.status) {
@@ -1271,6 +1275,16 @@ impl Session {
                 resp.status.message.unwrap_or_else(|| "None".to_string())
             );
             Ok(String::new())
+        }
+    }
+
+    /// Get Server properties
+    pub fn get_properties(&mut self) -> anyhow::Result<ServerProperties> {
+        match self.client.get_properties() {
+            Ok(properties) => Ok(properties),
+            Err(error) => {
+                bail!(error)
+            }
         }
     }
 

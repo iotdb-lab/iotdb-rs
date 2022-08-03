@@ -5,8 +5,8 @@ use iotdb::*;
 fn main() -> Result<(), anyhow::Error> {
     debug(false);
 
-    let config = iotdb::ConfigBuilder::new()
-        .endpoint("localhost:6667")
+    let config = ConfigBuilder::new()
+        .endpoint("119.84.128.59:6667")
         .user("root")
         .password("root")
         .time_zone("UTC+8")
@@ -14,7 +14,11 @@ fn main() -> Result<(), anyhow::Error> {
 
     // open session
     let mut session = Session::connect(config)?;
-    println!("time_zone: {}", session.time_zone()?);
+    println!(
+        "Server version {:#?}",
+        session.get_properties()?.version.as_str()
+    );
+    println!("Time Zone: {}", session.time_zone()?);
     session.delete_storage_group("root.ln")?;
     session.set_storage_group("root.ln")?;
     session.create_time_series(

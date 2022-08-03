@@ -12,25 +12,34 @@ if [ ! -d "${BUILD_DIR}" ]; then
   mkdir "${BUILD_DIR}"
 fi
 
-CHECK_COMMAND=""
-IS_EXIST_COMMAND=1
+IS_EXIST_COMMAND=0
 function check_command() {
-  if command -v ${RUN_COMMAND} &>/dev/null; then
-    IS_EXIST=1
+  if ! [ -x "$(command -v $1)" ]; then
+    echo 'ERROR: '$1' is not installed.'
+    IS_EXIST_COMMAND=0
+  else
+    echo 'INFO: '$1' exists.'
+    IS_EXIST_COMMAND=1
   fi
 }
 
-function gen() {
-  gen_command="${RUNNER} -out ${CURRENT_DIR}/src --gen rs ${CURRENT_DIR}/thrift/rpc.thrift"
+function gen_code() {
+  file_name=$1
+  gen_command="${RUNNER} -out ${CURRENT_DIR}/src --gen rs ${CURRENT_DIR}/thrift/${file_name}.thrift"
   echo "INFO: Gen command '${gen_command}'"
   command ${gen_command}
   sleep 3
 
-  if [ -f "${CURRENT_DIR}/src/rpc.rs" ]; then
+  if [ -f "${CURRENT_DIR}/src/${file_name}.rs" ]; then
     echo "INFO: Gen code to '${CURRENT_DIR}/src'"
   else
     echo "ERROR: Code gen failed"
   fi
+}
+
+function gen() {
+    gen_code "client"
+    gen_code "common"
 }
 
 function download_source() {
@@ -94,7 +103,7 @@ function fetch() {
       echo "Mandrake Linux"
       build_from_source
     elif [ -f /etc/debian_version ]; then
-      echo "Ubuntu/Debian Linux" && CHECK_COMMAND="apt-get" && check_command
+      echo "Ubuntu/Debian Linux" && check_command "apt-get"
       if [ ${IS_EXIST_COMMAND} == 1 ]; then
         sudo apt-get install thrift-compiler
         gen
@@ -106,7 +115,7 @@ function fetch() {
       build_from_source
     fi
   elif [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Mac OS (Darwin)" && CHECK_COMMAND="brew" && check_command
+    echo "Mac OS (Darwin)" && check_command "brew"
     if [ ${IS_EXIST_COMMAND} == 1 ]; then
       brew reinstall thrift && thrift -version && gen
     else
@@ -122,9 +131,9 @@ function fetch() {
 }
 
 function run() {
-  CHECK_COMMAND=${OS_RUNNER} && check_command
+  check_command ${OS_RUNNER}
   if [ ${IS_EXIST_COMMAND} == 1 ]; then
-    echo "INFO: Thrift exits." $(thrift -version) && gen
+    ${OS_RUNNER} -version && gen
   else
     fetch
   fi

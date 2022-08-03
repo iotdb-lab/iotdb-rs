@@ -1,57 +1,34 @@
-use std::fs;
 use std::process::Command;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let out_dir = "src";
-    let thrift_dir = "thrift";
-    fetch_rpc_file(thrift_dir);
-
-    for item in (fs::read_dir(thrift_dir))? {
-        let file = match item {
-            Ok(f) => f,
-            Err(e) => {
-                println!("Error: {}", e);
-                return Ok(());
-            }
-        };
-
-        if let Some(input_file) = file.file_name().to_str() {
-            let gen_file = format!("{}/{}", file.path().to_str().unwrap(), input_file);
-            gen(out_dir, gen_file.as_str());
-        }
-    }
-
-    Ok(())
-}
-
-fn gen(out_dir: &str, thrift_dir: &str) {
-    match Command::new("thrift")
-        .args(&["-out", out_dir, "--gen", "rs", thrift_dir])
+fn main() {
+    fetch_rpc_file("thrift");
+    Command::new("sh")
+        .args(&[format!(
+            "{}/code_gen.sh",
+            std::env::var("CARGO_MANIFEST_DIR").unwrap()
+        )])
         .output()
-    {
-        Ok(_) => {
-            println!("Gen to {:?}", out_dir);
-        }
-        Err(error) => {
-            println!("Thrift is not installed \n{:?}", error);
-        }
-    };
+        .unwrap();
 }
 
 fn fetch_rpc_file(thrift_dir: &str) {
-    let url =
-        "https://raw.githubusercontent.com/apache/iotdb/master/thrift/src/main/thrift/rpc.thrift";
+    let urls = [
+        ("https://raw.githubusercontent.com/apache/iotdb/master/thrift/src/main/thrift/client.thrift", "client.thrift")
+        , ("https://raw.githubusercontent.com/apache/iotdb/master/thrift-commons/src/main/thrift/common.thrift", "common.thrift")
+    ];
 
-    let out = format!("{}/rpc.thrift", thrift_dir);
-    match Command::new("curl")
-        .args(&["-o", out.as_str(), url])
-        .output()
-    {
-        Ok(_) => {
-            println!("Get rpc file to {:?}", thrift_dir);
-        }
-        Err(error) => {
-            println!("Curl is not installed \n{:?}", error);
-        }
-    };
+    for url in urls {
+        let out = format!("{}/{}", thrift_dir, url.1);
+        match Command::new("curl")
+            .args(&["-o", out.as_str(), url.0])
+            .output()
+        {
+            Ok(_) => {
+                println!("Get thrift file to {:?}", thrift_dir);
+            }
+            Err(error) => {
+                println!("Curl is not installed \n{:?}", error);
+            }
+        };
+    }
 }

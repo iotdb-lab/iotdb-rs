@@ -8,7 +8,7 @@ use polars::prelude::{DataFrame, Series};
 use prettytable::Row as PrettyRow;
 use prettytable::{Cell, Table};
 
-use crate::rpc::TSExecuteStatementResp;
+use crate::client::TSExecuteStatementResp;
 use crate::DataType;
 
 #[derive(Clone, Debug)]
